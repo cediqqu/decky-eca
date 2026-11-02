@@ -15,6 +15,8 @@ Sin root.
 > Ally X** con SteamOS y DualSense por Bluetooth. Mantenida por
 > [CeDiqqu](https://github.com/CeDiqqu), sin cadencia fija.
 
+Cambios por versión: [CHANGELOG.md](https://github.com/CeDiqqu/decky-eca/blob/main/CHANGELOG.md).
+
 Pensado para PC de mano con SteamOS y ES-DE (EmuDeck), no para Windows.
 
 ## Por qué E.C.A
