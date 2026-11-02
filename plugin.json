@@ -1,0 +1,17 @@
+{
+  "name": "E.C.A",
+  "author": "CeDiqqu",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": [
+      "controller",
+      "emulation",
+      "eden",
+      "es-de",
+      "switch"
+    ],
+    "description": "E.C.A (Eden Control Autoconfig): detecta los mandos de Eden, elige cual es el principal y aplica la configuracion antes de lanzar el juego. Sin root y sin tocar tus scripts.",
+    "image": "https://opengraph.githubassets.com/1/CeDiqqu/decky-eca"
+  }
+}

@@ -1,0 +1,1105 @@
+# -*- coding: utf-8 -*-
+# =============================================================================
+#  main.py -- backend del plugin de Decky "E.C.A" (Eden Control Autoconfig)
+# =============================================================================
+#  Este backend NO reimplementa nada del proyecto de scripts (eden_controller).
+#  Solo hace tres cosas:
+#
+#    1. EJECUTA los scripts ya instalados en ~/eden-autoconfig
+#       (eden-autoconfig.sh / eden-mandos-sdl.sh / instalar.sh).
+#    2. Lee la tabla de mandos de eden-mandos-sdl.sh (formato estable:
+#       nombre|guid|puerto|tipo|gamepad|nombre_sdl|serie; las lineas '#' son
+#       informativas y se ignoran).
+#    3. Guarda tus elecciones en un BLOQUE GESTIONADO al final de
+#       ~/eden-autoconfig/eden-autoconfig.conf, que es la interfaz publica del
+#       script (el hook de ES-DE lee ese mismo fichero al lanzar el juego).
+#
+#  El bloque se reemplaza entero cada vez: el resto del .conf queda intacto y,
+#  si borras el bloque, vuelves exactamente a tu configuracion anterior.
+#
+#  Correr como 'deck' (el plugin NO lleva el flag "root"): escribir el .conf
+#  como root dejaria a Eden sin permisos para guardar.
+# =============================================================================
+
+import asyncio
+import hashlib
+import json
+import logging
+import os
+import re
+import shutil
+import time
+import zlib
+
+try:
+    import decky
+    log = decky.logger
+except Exception:  # pruebas locales sin decky-loader
+    decky = None
+    log = logging.getLogger("eden-autoconfig-decky")
+
+PLUGIN_DIR = os.path.dirname(os.path.realpath(__file__))
+SCRIPTS_DIR = os.path.join(PLUGIN_DIR, "scripts")
+
+SCRIPT = "eden-autoconfig.sh"
+MANDOS = "eden-mandos-sdl.sh"
+INSTALADOR = "instalar.sh"
+
+BEGIN = "# >>> eden-autoconfig-decky >>>"
+END = "# <<< eden-autoconfig-decky <<<"
+
+# valores por defecto de E.C.A (los mismos que el script)
+PREF_DEF = {
+    "P1_SERIE": "",
+    "JUGADORES_MAX": "4",
+    "ORDEN_INTEGRADO": "ignorar",
+    "ORDEN_DUALSENSE": "conexion",
+    "RETENCION_BACKUPS": "10",
+}
+
+INTEGRADOS = ("ignorar", "primero", "ultimo")
+ORDENES = ("conexion", "mac")
+
+# una serie es una MAC (aa:bb:...) o similar; nunca dejamos pasar otra cosa
+RE_SERIE = re.compile(r"^[A-Za-z0-9:._-]{0,64}$")
+
+# cuanto texto devolvemos al panel (el QAM es pequeno)
+MAX_SALIDA = 6000
+
+
+# --------------------------------------------------------------- rutas ------
+
+def _home():
+    """HOME del usuario de la consola (deck), nunca el del proceso root."""
+    for attr in ("DECKY_USER_HOME", "DECKY_HOME"):
+        v = getattr(decky, attr, None) if decky else None
+        if v:
+            return v
+    return os.path.expanduser("~")
+
+
+def _base():
+    return os.path.join(_home(), "eden-autoconfig")
+
+
+def _conf():
+    return os.path.join(_base(), "eden-autoconfig.conf")
+
+
+def _log_txt():
+    return os.path.join(_base(), "log.txt")
+
+
+def _estado_dir():
+    """Estado privado del plugin (backups del .conf, fuera del proyecto de scripts)."""
+    return os.path.join(_home(), ".config", "eden-autoconfig-decky")
+
+
+def _script(nombre):
+    return os.path.join(_base(), nombre)
+
+
+def _env():
+    env = dict(os.environ)
+    env["HOME"] = _home()
+    # por si el loader arranca con un PATH minimo: bash necesita encontrar
+    # python3, bluetoothctl, flock, stat...
+    base_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    env["PATH"] = base_path + (":" + env["PATH"] if env.get("PATH") else "")
+    return env
+
+
+# --------------------------------------------------------- ejecutar bash -----
+
+async def _run(args, timeout=60, cwd=None):
+    """Ejecuta un comando y devuelve (exit, salida_combinada). Nunca lanza."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            cwd=cwd,
+            env=_env(),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+    except Exception as exc:
+        return -1, "no se pudo ejecutar %s: %s" % (args[0], exc)
+
+    try:
+        salida, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+    except asyncio.TimeoutError:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return -2, "tiempo agotado tras %ss" % timeout
+    except Exception as exc:
+        return -3, "fallo leyendo la salida: %s" % exc
+
+    return proc.returncode, (salida or b"").decode("utf-8", "replace")
+
+
+def _corta(texto):
+    texto = (texto or "").strip()
+    if len(texto) > MAX_SALIDA:
+        texto = texto[-MAX_SALIDA:]
+        texto = "(...)\n" + texto
+    return texto
+
+
+# ------------------------------------------------------------- prefs --------
+
+def _leer_prefs():
+    prefs = dict(PREF_DEF)
+    try:
+        with open(_conf(), "r", encoding="utf-8", errors="replace") as fh:
+            texto = fh.read()
+    except Exception:
+        return prefs
+
+    m = re.search(re.escape(BEGIN) + r"(.*?)" + re.escape(END), texto, re.S)
+    if not m:
+        return prefs
+
+    for linea in m.group(1).splitlines():
+        linea = linea.strip()
+        if not linea or linea.startswith("#") or "=" not in linea:
+            continue
+        clave, valor = linea.split("=", 1)
+        clave = clave.strip()
+        if clave in prefs:
+            prefs[clave] = valor.strip().strip('"').strip("'")
+    return _validar(prefs)
+
+
+def _validar(prefs):
+    out = {}
+
+    serie = str(prefs.get("P1_SERIE", "") or "").strip()
+    out["P1_SERIE"] = serie if RE_SERIE.match(serie) else ""
+
+    try:
+        n = int(str(prefs.get("JUGADORES_MAX", "4")).strip())
+    except Exception:
+        n = 4
+    out["JUGADORES_MAX"] = str(n if 1 <= n <= 4 else 4)
+
+    integ = str(prefs.get("ORDEN_INTEGRADO", "ignorar")).strip()
+    out["ORDEN_INTEGRADO"] = integ if integ in INTEGRADOS else "ignorar"
+
+    orden = str(prefs.get("ORDEN_DUALSENSE", "conexion")).strip()
+    out["ORDEN_DUALSENSE"] = orden if orden in ORDENES else "conexion"
+
+    try:
+        ret = int(str(prefs.get("RETENCION_BACKUPS", "10")).strip())
+    except Exception:
+        ret = 10
+    out["RETENCION_BACKUPS"] = str(ret if ret >= 0 else 10)
+
+    return out
+
+
+def _backup_conf(texto):
+    """Copia del .conf (sin el bloque nuevo) en el estado privado del plugin."""
+    try:
+        carpeta = _estado_dir()
+        os.makedirs(carpeta, exist_ok=True)
+        nombre = "eden-autoconfig.conf.%s.bak" % time.strftime("%Y%m%d-%H%M%S")
+        with open(os.path.join(carpeta, nombre), "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        # conservar solo los 5 mas recientes
+        backups = sorted(x for x in os.listdir(carpeta) if x.endswith(".bak"))
+        for viejo in backups[:-5]:
+            try:
+                os.remove(os.path.join(carpeta, viejo))
+            except Exception:
+                pass
+    except Exception as exc:
+        log.warning("no pude hacer backup del .conf: %s", exc)
+
+
+def _escribir_prefs(prefs):
+    """Reemplaza el bloque gestionado. Escritura atomica. Devuelve (ok, msg)."""
+    prefs = _validar(prefs)
+    conf = _conf()
+
+    existia = False
+    try:
+        with open(conf, "r", encoding="utf-8", errors="replace") as fh:
+            texto = fh.read()
+        existia = True
+    except FileNotFoundError:
+        if not _instalado()[0]:
+            return False, ("no existe %s y los scripts no estan instalados.\n"
+                           "Pulsa 'Instalar scripts' primero." % conf)
+        texto = ("# Creado por el plugin E.C.A.\n"
+                 "# El plugin solo gestiona el bloque marcado al final.\n")
+    except Exception as exc:
+        return False, "no puedo leer %s: %s" % (conf, exc)
+
+    # fuera bloque(s) anteriores
+    texto = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?",
+                   "", texto, flags=re.S).rstrip("\n") + "\n"
+
+    bloque = ["", BEGIN,
+              'P1_SERIE="%s"' % prefs["P1_SERIE"],
+              "JUGADORES_MAX=%s" % prefs["JUGADORES_MAX"],
+              'ORDEN_INTEGRADO="%s"' % prefs["ORDEN_INTEGRADO"],
+              'ORDEN_DUALSENSE="%s"' % prefs["ORDEN_DUALSENSE"],
+              "RETENCION_BACKUPS=%s" % prefs["RETENCION_BACKUPS"],
+              END, ""]
+    nuevo = texto + "\n".join(bloque)
+
+    if existia:
+        _backup_conf(texto)
+
+    tmp = conf + ".decky-tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(nuevo)
+            fh.flush()
+            os.fsync(fh.fileno())
+        if existia:
+            try:
+                os.chmod(tmp, os.stat(conf).st_mode & 0o777)
+            except Exception:
+                pass
+        else:
+            os.chmod(tmp, 0o644)
+        os.replace(tmp, conf)
+    except Exception as exc:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        return False, "no puedo escribir %s: %s" % (conf, exc)
+
+    return True, ""
+
+
+def _quitar_bloque():
+    """Elimina el bloque gestionado del .conf. Devuelve (ok, habia_bloque)."""
+    conf = _conf()
+    try:
+        with open(conf, "r", encoding="utf-8", errors="replace") as fh:
+            texto = fh.read()
+    except FileNotFoundError:
+        return True, False
+    except Exception:
+        return False, False
+
+    nuevo = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?",
+                   "", texto, flags=re.S)
+    nuevo = nuevo.rstrip("\n") + "\n"
+    if nuevo == texto:
+        return True, False
+
+    _backup_conf(texto)
+    tmp = conf + ".decky-tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(nuevo)
+            fh.flush()
+            os.fsync(fh.fileno())
+        try:
+            os.chmod(tmp, os.stat(conf).st_mode & 0o777)
+        except Exception:
+            pass
+        os.replace(tmp, conf)
+    except Exception as exc:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        log.warning("no pude limpiar el bloque: %s", exc)
+        return False, False
+    return True, True
+
+
+# ------------------------------------------------------------ mdandos -------
+
+# --------------------------------------------------- estado del plugin ------
+#  Preferencias que no caben en el .conf: sobre todo, que queria el usuario
+#  para el mando integrado cuando lo hemos puesto en "no usar" por falta de
+#  hueco (4 DualSense conectados).
+
+def _estado_json():
+    return os.path.join(_estado_dir(), "estado.json")
+
+
+def _leer_estado_plugin():
+    try:
+        with open(_estado_json(), "r", encoding="utf-8") as fh:
+            datos = json.load(fh)
+        return datos if isinstance(datos, dict) else {}
+    except Exception:
+        return {}
+
+
+def _guardar_estado_plugin(datos):
+    try:
+        os.makedirs(_estado_dir(), exist_ok=True)
+        ruta = _estado_json()
+        tmp = ruta + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(datos, fh, indent=1, ensure_ascii=False)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, ruta)
+    except Exception as exc:
+        log.warning("no pude guardar %s: %s", _estado_json(), exc)
+
+
+def _sincronizar_integrado(prefs, ds_n):
+    """Decide el ajuste efectivo del mando integrado.
+
+    - Con 4 DualSense no queda hueco: se pone 'ignorar' y se recuerda lo que
+      queria el usuario para devolverlo cuando desconecte uno.
+    - Si el .conf no tiene lo que dejamos escrito, manda lo que diga el .conf.
+
+    Devuelve (prefs, forzado_por_4_mandos, nota).
+    """
+    st = _leer_estado_plugin()
+    aplicado = st.get("integrado_aplicado")
+    deseado = st.get("integrado_deseado")
+
+    if prefs["ORDEN_INTEGRADO"] != aplicado:
+        deseado = prefs["ORDEN_INTEGRADO"]
+    if deseado not in INTEGRADOS:
+        deseado = prefs["ORDEN_INTEGRADO"] if prefs["ORDEN_INTEGRADO"] in INTEGRADOS else "ignorar"
+
+    nota = ""
+    if ds_n >= 4:
+        efectivo = "ignorar"
+        if deseado != "ignorar":
+            nota = ("4 mandos conectados: el mando integrado pasa a "
+                    "'no usar' automaticamente.")
+    else:
+        efectivo = deseado
+        if prefs["ORDEN_INTEGRADO"] == "ignorar" and deseado != "ignorar":
+            nota = ("Ya no hay 4 mandos: el mando integrado recupera '%s'."
+                    % deseado)
+
+    if prefs["ORDEN_INTEGRADO"] != efectivo:
+        prefs["ORDEN_INTEGRADO"] = efectivo
+        ok, msg = _escribir_prefs(prefs)
+        if not ok:
+            nota = (nota + "\n" if nota else "") + msg
+
+    if st.get("integrado_aplicado") != efectivo or st.get("integrado_deseado") != deseado:
+        st["integrado_aplicado"] = efectivo
+        st["integrado_deseado"] = deseado
+        _guardar_estado_plugin(st)
+
+    return prefs, ds_n >= 4, nota
+
+
+# --------------------------------------------- plan de jugadores (--who) ----
+RE_WHO = re.compile(r"Player\s+(\d+)\s*=\s*(.+?)\s*\(port\s+(\d+)\)", re.I)
+
+
+def _parse_who(texto):
+    """Lee el plan de `--who`. El script es quien decide: aqui solo se lee.
+
+    Lineas tipo:
+      Player 1 = DualSense 1  (port 0)
+      Player 3 = INTEGRADO [Asus...]  (port 0)
+      Player 1 = pad virtual Steam 0   (port 0)
+    """
+    plan = {"dual": {}, "virtual": {}, "integrado": None}
+    for m in RE_WHO.finditer(texto or ""):
+        jugador = int(m.group(1))
+        que = m.group(2).strip().lower()
+        puerto = m.group(3)
+        if "integrado" in que:
+            plan["integrado"] = jugador
+        elif "virtual" in que:
+            plan["virtual"][puerto] = jugador
+        elif "dualsense" in que:
+            plan["dual"][puerto] = jugador
+    return plan
+
+
+def _sincronizar_principal(prefs, ds):
+    """El mando principal: con uno solo, se fija solo.
+
+    - Si hay un unico DualSense y no hay principal fijado, se fija ese (asi al
+      conectar mas sigue siendo el principal hasta que elijas otro).
+    - Si el principal fijado ya no esta entre los conectados, se libera para
+      que el primero disponible vuelva a ser Player 1.
+    """
+    original = prefs["P1_SERIE"]
+    deseado = original
+    nota = ""
+
+    if deseado and ds and not any(m["serie"] == deseado for m in ds):
+        deseado = ""
+        nota = ("El mando principal ya no esta conectado: se libera para que el "
+                "primero disponible sea el Player 1.")
+
+    if not deseado and len(ds) == 1 and ds[0]["serie"]:
+        deseado = ds[0]["serie"]
+        nota = "Un solo mando conectado: se fija como mando principal."
+
+    if deseado != original:
+        prefs["P1_SERIE"] = deseado
+        ok, msg = _escribir_prefs(prefs)
+        if not ok:
+            nota = (nota + "\n" if nota else "") + msg
+
+    return prefs, nota
+
+
+def _marcar_principal(mandos, prefs):
+    """Marca cual es el mando principal (la estrella del panel)."""
+    ds = [m for m in mandos if m["clase"] == "DualSense"]
+
+    if any(m["jugador"] == 1 for m in mandos):
+        for m in mandos:
+            m["es_principal"] = (m["jugador"] == 1)
+    elif prefs["P1_SERIE"]:
+        for m in mandos:
+            m["es_principal"] = (m["serie"] == prefs["P1_SERIE"])
+    else:
+        primero = ds[0] if ds else None
+        for m in mandos:
+            m["es_principal"] = (m is primero)
+
+
+# ------------------------------------------------------------- vibracion ----
+#  Pulso corto para identificar un mando concreto. Se escribe el reporte de
+#  salida por /dev/hidrawN (lo mismo que hace Steam), asi que no hace falta
+#  root ni tocar /sys.
+#
+#  Formato (drivers/hid/hid-playstation.c):
+#    common[0] = 0x01 | 0x02   (compatible vibration + haptics select)
+#    common[2] = motor_right
+#    common[3] = motor_left
+#    USB : 0x02 + common(47) + 15                       -> 63 bytes
+#    BT  : 0x31 + seq + 0x10 + common(47) + 24 + crc32  -> 78 bytes
+#
+#  OJO con el CRC: el kernel lo calcula como
+#      crc32_le(0xFFFFFFFF, &0xA2, 1) ... ~crc32_le(crc, data, len-4)
+#  o sea: CRC-32 de (0xA2 || reporte_sin_crc). Si se usa el CRC "normal",
+#  el mando descarta el reporte en silencio (no vibra y no da error).
+
+SEMILLA_CRC = 0xA2
+
+MOTOR_PULSO = 0x28
+PULSO_S = 0.30
+
+_seq_bt = int(time.time()) & 0x0F
+
+
+def _siguiente_seq():
+    """Contador de 4 bits del reporte Bluetooth (debe cambiar siempre)."""
+    global _seq_bt
+    _seq_bt = (_seq_bt + 1) & 0x0F
+    return _seq_bt
+
+
+def _norm_mac(valor):
+    return (valor or "").strip().lower().replace(":", "").replace("-", "")
+
+
+def _leer_texto(ruta):
+    with open(ruta, "r", encoding="utf-8", errors="replace") as fh:
+        return fh.read().strip()
+
+
+def _raiz_hidraw():
+    return os.environ.get("EDEN_HIDRAW_ROOT", "").strip() or "/sys/class/hidraw"
+
+
+def _devdir():
+    return os.environ.get("EDEN_DEVDIR", "").strip() or "/dev"
+
+
+def _hidraw_de(clave):
+    """(/dev/hidrawN, 'usb'|'bt') del mando con esa MAC, o None."""
+    if not clave:
+        return None
+    for ruta, bus, mac in _hidraws_ds5():
+        if mac == clave:
+            return (ruta, bus)
+    return None
+
+
+def _mac_de_hidraw(base):
+    """MAC del mando, mirando uniq, uniq anidado y el uevent del HID."""
+    for rel in ("device/uniq", "device/device/uniq"):
+        try:
+            valor = _leer_texto(os.path.join(base, rel))
+        except Exception:
+            valor = ""
+        if valor:
+            return _norm_mac(valor)
+
+    for rel in ("device/uevent", "device/device/uevent"):
+        try:
+            with open(os.path.join(base, rel), "r",
+                      encoding="utf-8", errors="replace") as fh:
+                for linea in fh:
+                    if linea.startswith("HID_UNIQ="):
+                        return _norm_mac(linea.split("=", 1)[1])
+        except Exception:
+            continue
+    return ""
+
+
+def _hidraws_ds5():
+    """[(/dev/hidrawN, 'usb'|'bt', mac)] de los DualSense, en orden."""
+    raiz = _raiz_hidraw()
+    salida = []
+    try:
+        nombres = sorted(os.listdir(raiz))
+    except Exception:
+        return salida
+
+    for nombre in nombres:
+        base = os.path.join(raiz, nombre)
+        try:
+            real = os.path.realpath(os.path.join(base, "device")).upper()
+        except Exception:
+            real = ""
+        if "054C" not in real:
+            continue
+
+        # fuera interfaces auxiliares (touchpad, sensores...) si las hubiera
+        nombre_hid = ""
+        try:
+            for linea in _leer_texto(os.path.join(base, "device/uevent")).splitlines():
+                if linea.startswith("HID_NAME="):
+                    nombre_hid = linea.split("=", 1)[1].strip().lower()
+                    break
+        except Exception:
+            pass
+        if any(x in nombre_hid for x in ("touchpad", "motion sensor", "sensors")):
+            continue
+
+        bus = "bt" if "0005:" in real else "usb"
+        salida.append((os.path.join(_devdir(), nombre), bus, _mac_de_hidraw(base)))
+    return salida
+
+
+def _diagnostico_hidraw(buscando):
+    raiz = _raiz_hidraw()
+    lineas = ["No encuentro su /dev/hidraw.",
+              "  buscando: %s" % (buscando or "-")]
+    try:
+        nombres = sorted(os.listdir(raiz))
+    except Exception as exc:
+        lineas.append("  no puedo leer %s: %s" % (raiz, exc))
+        return "\n".join(lineas)
+
+    lineas.append("  %s: %s" % (raiz, ", ".join(nombres[:8]) or "(vacia)"))
+    for nombre in nombres[:8]:
+        base = os.path.join(raiz, nombre)
+        uniq = ""
+        for rel in ("device/uniq", "device/device/uniq"):
+            try:
+                uniq = _leer_texto(os.path.join(base, rel))
+            except Exception:
+                uniq = ""
+            if uniq:
+                break
+        hid_uniq = ""
+        hid_id = ""
+        try:
+            for linea in _leer_texto(os.path.join(base, "device/uevent")).splitlines():
+                if linea.startswith("HID_UNIQ="):
+                    hid_uniq = linea.split("=", 1)[1]
+                elif linea.startswith("HID_ID="):
+                    hid_id = linea.split("=", 1)[1]
+        except Exception:
+            pass
+        lineas.append("    %s  uniq=%r HID_UNIQ=%r HID_ID=%r"
+                      % (nombre, uniq, hid_uniq, hid_id))
+    return "\n".join(lineas)
+
+
+def _reporte_ds5(bus, motor, seq=None):
+    comun = bytearray(47)
+    comun[0] = 0x01 | 0x02          # compatible vibration + haptics select
+    comun[2] = motor & 0xFF         # motor_right
+    comun[3] = motor & 0xFF         # motor_left
+
+    if bus == "usb":
+        return bytes([0x02]) + bytes(comun) + bytes(15)
+
+    if seq is None:
+        seq = _siguiente_seq()
+    cuerpo = bytes([0x31, (seq & 0x0F) << 4, 0x10]) + bytes(comun) + bytes(24)
+    crc = zlib.crc32(bytes([SEMILLA_CRC]) + cuerpo) & 0xFFFFFFFF
+    return cuerpo + crc.to_bytes(4, "little")
+
+
+def _hash_scripts(carpeta):
+    h = hashlib.sha256()
+    for nombre in (SCRIPT, MANDOS, "eden-diagnostico.sh"):
+        ruta = os.path.join(carpeta, nombre)
+        try:
+            with open(ruta, "rb") as fh:
+                h.update(fh.read())
+        except Exception:
+            return ""
+    return h.hexdigest()[:12]
+
+
+def _instalado():
+    ruta = _script(SCRIPT)
+    ok = os.path.isfile(ruta) and os.access(ruta, os.R_OK)
+    return ok, ruta
+
+
+def _version_bundle():
+    try:
+        with open(os.path.join(SCRIPTS_DIR, "VERSION"), "r",
+                  encoding="utf-8", errors="replace") as fh:
+            for linea in fh:
+                if linea.lower().startswith("version:"):
+                    return linea.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return "?"
+
+
+def _conexion(guid):
+    bus = (guid or "")[:2].lower()
+    if bus == "05":
+        return "Bluetooth"
+    if bus == "03":
+        return "USB"
+    if bus == "06":
+        return "Virtual"
+    return "?"
+
+
+def _clase(nombre, guid, virtual):
+    n = (nombre or "").lower()
+    if "dualsense" in n or "wireless controller" in n:
+        return "DualSense"
+    if virtual:
+        return "Pad virtual"
+    if any(x in n for x in ("rog", "ally", "asus", "x-box", "xbox")):
+        return "Integrado"
+    return "Otro"
+
+
+def _familia(nombre, guid, virtual):
+    """Familia del mando: decide el icono del panel.
+
+    'playstation' | 'xbox' | 'switch' | 'steam' | 'integrado' | 'desconocido'
+    """
+    n = (nombre or "").lower()
+    vendor = guid[8:12].lower() if len(guid) >= 12 else ""
+
+    if "rog" in n or "ally" in n or "asus" in n:
+        return "integrado"
+    if "xbox" in n or "x-box" in n:
+        return "xbox"
+    if "dualsense" in n or "wireless controller" in n or vendor == "054c":
+        return "playstation"
+    if "switch" in n or "pro controller" in n or "joy-con" in n or "joycon" in n:
+        return "switch"
+    if "steam" in n or virtual or vendor == "de28":
+        return "steam"
+    return "desconocido"
+
+
+def _parse_mandos(texto):
+    mandos = []
+    for cruda in (texto or "").splitlines():
+        linea = cruda.strip()
+        if not linea or linea.startswith("#"):
+            continue
+        partes = linea.split("|")
+        if len(partes) < 7:
+            continue
+        nombre, guid, puerto, _tipo, gamepad, nombre_sdl, serie = partes[:7]
+        virtual = (guid[8:12].lower() == "de28")
+        clase = _clase(nombre if nombre else nombre_sdl, guid, virtual)
+        if virtual:
+            conexion = "Virtual (Steam)"
+        elif clase == "Integrado":
+            conexion = "Interno"
+        else:
+            conexion = _conexion(guid)
+        mandos.append({
+            "nombre": nombre,
+            "sdl": nombre_sdl,
+            "clase": clase,
+            "familia": _familia(nombre if nombre else nombre_sdl, guid, virtual),
+            "conexion": conexion,
+            "guid": guid,
+            "puerto": puerto,
+            "serie": serie,
+            "virtual": virtual,
+            "gamepad": gamepad == "1",
+        })
+    return mandos
+
+
+def _esde_eventos():
+    """True/False si CustomEventScripts esta activo; None si no hay ES-DE."""
+    ruta = os.path.join(_home(), "ES-DE", "settings", "es_settings.xml")
+    try:
+        with open(ruta, "r", encoding="utf-8", errors="replace") as fh:
+            texto = fh.read()
+    except Exception:
+        return None
+    m = re.search(r'<bool[^>]*name="CustomEventScripts"[^>]*>', texto)
+    if not m:
+        return False
+    return 'value="true"' in m.group(0)
+
+
+def _hook_instalado():
+    return os.path.isfile(os.path.join(
+        _home(), "ES-DE", "scripts", "game-start", "10-eden-autoconfig.sh"))
+
+
+def _escenario(mandos):
+    if not mandos:
+        return "sin_mandos"
+    ds = [m for m in mandos if m["clase"] == "DualSense"]
+    virt = any(m["virtual"] for m in mandos)
+    if ds and virt:
+        return "steam_input"
+    if ds:
+        return "nativo"
+    if virt:
+        return "steam_input_integrado"
+    return "solo_integrado"
+
+
+# -------------------------------------------------------------- plugin ------
+
+class Plugin:
+
+    # ------------------------------------------------------------------ vida
+    async def _main(self):
+        ok, ruta = _instalado()
+        log.info("E.C.A listo. HOME=%s scripts=%s",
+                 _home(), "instalados" if ok else "NO instalados (%s)" % ruta)
+        if not ok:
+            log.info("Pulsa 'Instalar scripts' en el panel para instalarlos.")
+
+    async def _unload(self):
+        log.info("E.C.A descargado (no se toca ~/eden-autoconfig)")
+
+    # --------------------------------------------------------------- estado
+    async def estado(self):
+        ok, ruta = _instalado()
+        prefs = _leer_prefs()
+        mandos = []
+        salida = ""
+        salida_who = ""
+        aviso = ""
+
+        if ok:
+            # mismo gancho de pruebas que eden-autoconfig.sh (aqui no hay SDL)
+            fake = os.environ.get("EDEN_FAKE_SDL", "").strip()
+            if fake and os.path.isfile(fake):
+                try:
+                    with open(fake, "r", encoding="utf-8", errors="replace") as fh:
+                        salida = fh.read()
+                    rc = 0
+                except Exception as exc:
+                    rc, salida = -1, "no puedo leer EDEN_FAKE_SDL: %s" % exc
+            else:
+                rc, salida = await _run(["bash", _script(MANDOS)], timeout=45)
+            mandos = _parse_mandos(salida)
+            if rc != 0 and not mandos:
+                aviso = ("No he podido interrogar a SDL:\n" +
+                         _corta(salida)[-800:])
+        else:
+            aviso = ("Los scripts no estan instalados en %s.\n"
+                     "Pulsa 'Instalar scripts' para copiarlos desde el plugin."
+                     % _base())
+
+        ds = [m for m in mandos if m["clase"] == "DualSense"]
+        ds_n = len(ds)
+
+        # 4 mandos = no hay hueco para el integrado (se escribe antes de
+        # pedir el plan, para que el plan ya lo refleje).
+        prefs, integrado_auto, nota = _sincronizar_integrado(prefs, ds_n)
+        prefs, nota_principal = _sincronizar_principal(prefs, ds)
+        for n in (nota, nota_principal):
+            if n:
+                aviso = ((aviso + "\n") if aviso else "") + n
+
+        # Los jugadores los decide el script (`--who`): aqui no se reimplementa.
+        if ok:
+            _rc, salida_who = await _run(
+                ["bash", _script(SCRIPT), "--who"], timeout=60)
+        plan = _parse_who(salida_who if ok else "")
+
+        for m in mandos:
+            m["principal"] = bool(prefs["P1_SERIE"]) and m["serie"] == prefs["P1_SERIE"]
+            if m["virtual"]:
+                m["jugador"] = plan["virtual"].get(m["puerto"])
+            elif m["clase"] == "Integrado":
+                m["jugador"] = plan["integrado"]
+            elif m["clase"] == "DualSense":
+                m["jugador"] = plan["dual"].get(m["puerto"])
+            else:
+                m["jugador"] = None
+
+        _marcar_principal(mandos, prefs)
+
+        # Steam Input a veces repite la misma serie en varios pads: se avisa,
+        # porque entonces no se pueden distinguir entre si.
+        series = [m["serie"] for m in mandos if m["serie"]]
+        dups = sorted({s for s in series if series.count(s) > 1})
+        if dups:
+            aviso = ((aviso + "\n") if aviso else "") + (
+                "La serie se repite en varios mandos (%s).\n"
+                "No se pueden distinguir: manda el orden de conexion."
+                % ", ".join(dups[:3]))
+
+        has_inst = _hash_scripts(_base())
+        has_bundle = _hash_scripts(SCRIPTS_DIR)
+
+        return {
+            "ok": True,
+            "instalado": ok,
+            "ruta": ruta,
+            "base": _base(),
+            "conf": _conf(),
+            "prefs": prefs,
+            "mandos": mandos,
+            "escenario": _escenario(mandos),
+            "ds_conectados": ds_n,
+            "otros_conectados": len([m for m in mandos if m["clase"] == "Otro"]),
+            "integrado_auto": integrado_auto,
+            "hook": _hook_instalado(),
+            "esde": _esde_eventos(),
+            "version": _version_bundle(),
+            "hash_instalado": has_inst,
+            "desactualizado": bool(ok and has_bundle and has_inst and has_inst != has_bundle),
+            "aviso": aviso,
+        }
+
+    # ------------------------------------------------------------- acciones
+    async def alternar_principal(self, serie):
+        """Marca/desmarca un mando concreto como Player 1."""
+        serie = (serie or "").strip()
+        prefs = _leer_prefs()
+        if not serie:
+            return await self.estado()
+
+        prefs["P1_SERIE"] = "" if prefs["P1_SERIE"] == serie else serie
+        ok, msg = _escribir_prefs(prefs)
+        estado = await self.estado()
+        if not ok:
+            estado["aviso"] = msg
+        return estado
+
+    async def ciclar(self, clave):
+        """Cicla un ajuste: 'max' | 'integrado' | 'orden'."""
+        if clave == "integrado":
+            actual = await self.estado()
+            if actual.get("integrado_auto"):
+                actual["aviso"] = ((actual["aviso"] + "\n") if actual["aviso"] else "") + (
+                    "Con 4 mandos conectados el mando integrado no se usa.\n"
+                    "Desconecta uno para poder cambiarlo.")
+                return actual
+
+            prefs = actual["prefs"]
+            i = INTEGRADOS.index(prefs["ORDEN_INTEGRADO"])
+            prefs["ORDEN_INTEGRADO"] = INTEGRADOS[(i + 1) % len(INTEGRADOS)]
+            ok, msg = _escribir_prefs(prefs)
+
+            # lo que el usuario elige a mano pasa a ser su preferencia
+            st = _leer_estado_plugin()
+            st["integrado_deseado"] = prefs["ORDEN_INTEGRADO"]
+            st["integrado_aplicado"] = prefs["ORDEN_INTEGRADO"]
+            _guardar_estado_plugin(st)
+
+            nuevo = await self.estado()
+            if not ok:
+                nuevo["aviso"] = msg
+            return nuevo
+
+        prefs = _leer_prefs()
+
+        if clave == "max":
+            n = int(prefs["JUGADORES_MAX"])
+            prefs["JUGADORES_MAX"] = str(1 if n >= 4 else n + 1)
+
+        elif clave == "orden":
+            i = ORDENES.index(prefs["ORDEN_DUALSENSE"])
+            prefs["ORDEN_DUALSENSE"] = ORDENES[(i + 1) % len(ORDENES)]
+
+        else:
+            return await self.estado()
+
+        ok, msg = _escribir_prefs(prefs)
+        estado = await self.estado()
+        if not ok:
+            estado["aviso"] = msg
+        return estado
+
+    async def aplicar(self):
+        """Escribe qt-config.ini segun las preferencias guardadas."""
+        ok, _ = _instalado()
+        if not ok:
+            return {"exit": 4, "salida": "Los scripts no estan instalados."}
+        # sincroniza antes (p. ej. el integrado con 4 DualSense)
+        await self.estado()
+        rc, salida = await _run(["bash", _script(SCRIPT)], timeout=120)
+        return {"exit": rc, "salida": _corta(salida), "mensaje": _mensaje_exit(rc)}
+
+    async def restaurar_todo(self):
+        """Vuelve al estado anterior a E.C.A: config, preferencias y hook."""
+        base = _base()
+        backups = os.path.join(base, "backups")
+        stock_dir = os.path.join(base, "stock")
+        stock = os.path.join(stock_dir, "qt-config.ini")
+
+        lineas = []
+        errores = []
+
+        # 1) copia fija del original (la primera vez, la mas antigua)
+        copias = []
+        if os.path.isdir(backups):
+            for nombre in os.listdir(backups):
+                if (nombre.startswith("qt-config.ini.")
+                        and "stock" not in nombre):
+                    copias.append(os.path.join(backups, nombre))
+        copias.sort(key=lambda p: os.path.getmtime(p))
+
+        if not os.path.isfile(stock):
+            if not copias:
+                return {"ok": False,
+                        "salida": "No hay ninguna copia de seguridad: no puedo "
+                                  "volver al estado original."}
+            try:
+                os.makedirs(stock_dir, exist_ok=True)
+                shutil.copyfile(copias[0], stock)
+                lineas.append("Original guardado en %s" % stock)
+            except Exception as exc:
+                return {"ok": False,
+                        "salida": "No puedo guardar el original: %s" % exc}
+        else:
+            lineas.append("Usando el original guardado (%s)" % stock)
+
+        # 2) restaurar con el script (valida y copia el estado actual)
+        tmp_restore = os.path.join(backups, "qt-config.ini.stock-restore")
+        try:
+            os.makedirs(backups, exist_ok=True)
+            shutil.copyfile(stock, tmp_restore)
+        except Exception as exc:
+            return {"ok": False,
+                    "salida": "No puedo preparar la restauracion: %s" % exc}
+
+        rc, _salida = await _run(
+            ["bash", _script(SCRIPT), "--restore", "stock-restore"], timeout=90)
+        try:
+            os.remove(tmp_restore)
+        except Exception:
+            pass
+
+        if rc == 0:
+            lineas.append("qt-config.ini restaurado al estado original")
+        else:
+            errores.append("restaurar: %s" % _mensaje_exit(rc))
+
+        # 3) quitar preferencias del plugin
+        ok, habia = _quitar_bloque()
+        if not ok:
+            errores.append("no pude limpiar las preferencias del .conf")
+        elif habia:
+            lineas.append("Preferencias del plugin eliminadas del .conf")
+        else:
+            lineas.append("No habia preferencias guardadas")
+
+        # 4) desactivar el hook de ES-DE
+        hook = os.path.join(_home(), "ES-DE", "scripts", "game-start",
+                            "10-eden-autoconfig.sh")
+        fuera = os.path.join(_home(), "ES-DE", "scripts",
+                             "10-eden-autoconfig.sh.desactivado")
+        if os.path.isfile(hook):
+            try:
+                os.makedirs(os.path.dirname(fuera), exist_ok=True)
+                os.replace(hook, fuera)
+                lineas.append("Hook de ES-DE desactivado")
+            except Exception as exc:
+                errores.append("no pude desactivar el hook: %s" % exc)
+        else:
+            lineas.append("El hook ya estaba desactivado")
+
+        texto = "\n".join(lineas)
+        if errores:
+            texto += ("\n\nProblemas:\n" if texto else "") + "\n".join(errores)
+        return {"ok": not errores, "salida": texto}
+
+    async def vibrar(self, serie, puerto=""):
+        """Pulso corto de vibracion en un mando (para identificarlo)."""
+        clave = _norm_mac(serie)
+        if not clave:
+            return {"ok": False, "salida": "Ese mando no informa de su serie."}
+
+        destino = _hidraw_de(clave)
+        metodo = "por MAC"
+
+        if not destino:
+            sony = _hidraws_ds5()
+            indice = int(puerto) if str(puerto).isdigit() else -1
+            if len(sony) == 1:
+                destino = (sony[0][0], sony[0][1])
+                metodo = "unico DualSense"
+            elif 0 <= indice < len(sony):
+                destino = (sony[indice][0], sony[indice][1])
+                metodo = "por orden"
+
+        if not destino:
+            return {"ok": False, "salida": _diagnostico_hidraw(clave)}
+
+        ruta, bus = destino
+        try:
+            with open(ruta, "wb") as fh:
+                fh.write(_reporte_ds5(bus, MOTOR_PULSO))
+        except Exception as exc:
+            return {"ok": False,
+                    "salida": "No puedo escribir en %s (%s)." % (ruta, exc)}
+
+        # la parada va en la misma llamada: nunca se queda vibrando
+        await asyncio.sleep(PULSO_S)
+        try:
+            with open(ruta, "wb") as fh:
+                fh.write(_reporte_ds5(bus, 0))
+        except Exception:
+            pass
+
+        return {"ok": True,
+                "salida": "vibrando (%s · %s)" % (metodo, os.path.basename(ruta))}
+
+    async def ver_log(self):
+        try:
+            with open(_log_txt(), "r", encoding="utf-8", errors="replace") as fh:
+                lineas = fh.readlines()
+        except FileNotFoundError:
+            return {"salida": "todavia no hay log (%s)" % _log_txt()}
+        except Exception as exc:
+            return {"salida": "no puedo leer el log: %s" % exc}
+        return {"salida": "".join(lineas[-40:]) or "(log vacio)"}
+
+    async def instalar_scripts(self):
+        inst = os.path.join(SCRIPTS_DIR, INSTALADOR)
+        if not os.path.isfile(inst):
+            return {"ok": False, "exit": 1,
+                    "salida": "falta %s en el plugin (bundle incompleto)" % inst}
+        rc, salida = await _run(["bash", inst], timeout=240, cwd=SCRIPTS_DIR)
+        return {"ok": rc == 0, "exit": rc, "salida": _corta(salida)}
+
+
+def _mensaje_exit(rc):
+    return {
+        0: "hecho",
+        1: "error (mira el resultado)",
+        2: "no habia nada que hacer",
+        3: "Eden esta en ejecucion: cierralo y reintenta",
+        4: "no encuentro qt-config.ini de Eden",
+        5: "no encuentro la plantilla del perfil",
+    }.get(rc, "salida %s" % rc)

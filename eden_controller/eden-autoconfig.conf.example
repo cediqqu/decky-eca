@@ -1,0 +1,97 @@
+# =============================================================================
+#  eden-autoconfig.conf   (ejemplo)
+# =============================================================================
+#  Copialo a  ~/eden-autoconfig/eden-autoconfig.conf  y edita lo que necesites.
+#  Es opcional: el script tiene estos mismos valores por defecto.
+#
+#  OJO: este fichero es un script de shell (se hace "source"), asi que usa
+#       comillas para los espacios y no pongas comandos raros.
+# =============================================================================
+
+# --- Rutas (normalmente no hace falta tocarlas) ------------------------------
+# Ruta explicita al qt-config.ini de Eden. Vacio = autodetecta.
+#EDEN_CONFIG="/home/deck/.config/eden/qt-config.ini"
+EDEN_CONFIG=""
+
+# Ruta explicita al AppImage de Eden. Vacio = autodetecta.
+EDEN_APPIMAGE=""
+
+# --- Que perfil de Eden se clona en cada mando ------------------------------
+# Nombre del perfil (fichero <config>/input/<nombre>.ini).
+PERFIL="emudeck"
+
+# auto  = usar la plantilla guardada (templates/<tipo>.player0.txt) si existe
+#         y, si no, el perfil. Es lo recomendado.
+# si    = igual que auto
+# no    = usar siempre las plantillas guardadas (ignora el perfil)
+USAR_PERFIL="auto"
+
+# --- Reglas de asignacion ----------------------------------------------------
+# Cuantos DualSense se asignan como maximo (1..4).
+JUGADORES_MAX=4
+
+# Que hacer con el mando integrado de la Ally cuando hay DualSense:
+#   ignorar = no se usa (por defecto). P1..PN = DualSense 1..N
+#   primero = el integrado es P1 y los DualSense van detras (P1 estable y
+#             siempre identificable: el propio mando de la consola)
+#   ultimo  = los DualSense primero y el integrado como jugador extra al final
+ORDEN_INTEGRADO="ignorar"
+
+# Tipo de mando emulado por Eden. 0 = Pro Controller (lo normal).
+TIPO_CONTROLADOR="0"
+
+# --- GUIDs (solo si necesitas forzarlos) -------------------------------------
+# Si los dejas vacios se usa el guid que venga en la plantilla, que es lo
+# recomendado. Rellenalos solo si sabes que el mando real usa otro guid.
+GUID_DUALSENSE=""
+GUID_INTEGRADO=""
+
+# --- Que DualSense es el Player 1 --------------------------------------------
+#   conexion = el orden en que el sistema los enumera (normalmente, el primero
+#              que conectas acaba como P1)
+#   mac      = ordena por numero de serie: un DualSense CONCRETO es siempre P1,
+#              aunque cambies el orden de conexion (mas predecible)
+# Requiere que los mandos den numero de serie (mira la columna SERIE de --mandos).
+ORDEN_DUALSENSE="conexion"
+
+# Si quieres que SIEMPRE un DualSense concreto sea el Player 1, pon aqui su
+# numero de serie (columna SERIE de --mandos, o la MAC de `bluetoothctl`).
+# Ese mando va primero y los demas detras. Vacio = no forzar.
+P1_SERIE=""
+
+# --- Deteccion de mandos por SDL ---------------------------------------------
+# La SDL que lleva Eden dentro calcula el CRC del GUID a 0; otras versiones de
+# SDL meten otro CRC y entonces Eden no reconoce el mando. Con "si" se pone a
+# cero ese CRC (deja los GUIDs exactamente como los espera Eden).
+# Valores: si | no   (por defecto: si)
+SDL_CRC_CERO="si"
+
+# Solo si hiciera falta forzar una libSDL3 concreta:
+#EDEN_SDL_LIB="libSDL3.so.0"
+#EDEN_SDL_LIB_DIR=""
+
+# --- Patrones de reconocimiento (case-insensitive) ---------------------------
+# Se comparan con el nombre del dispositivo en minusculas.
+# El vendor 054c (Sony) y 28de (Valve) ya se reconocen solos.
+DUALSENSE_PATRON="*wireless controller*|*dualsense*"
+INTEGRADO_PATRON="*rog*|*ally*|*asus*|*hid-asus*|*microsoft x-box 360 pad*"
+IGNORAR_PATRON="*touchpad*|*motion sensors*|*consumer control*|*keyboard*|*mouse*|*video bus*|*power button*|*sleep button*|*pc speaker*|*hd-audio*|*lid switch*|*sensors*"
+
+# --- Aviso si el DualSense que quieres como P1 no es el primero --------------
+# Eden NO puede fijar un mando por MAC. Si rellenas esto con la MAC del mando
+# que quieres como P1 (formato aa:bb:cc:dd:ee:ff, como en 'bluetoothctl devices'),
+# el script te avisara si el primer DualSense detectado es otro.
+EXIGIR_P1_MAC=""
+
+# 1 = si EXIGIR_P1_MAC no coincide, no aplicar cambios (deja el juego sin
+#     configurar). 0 = avisar y aplicar igualmente (recomendado: no te quedas
+#     sin jugar).
+AVISAR_SIN_NEGOCIAR=0
+
+# --- Copias de seguridad -----------------------------------------------------
+# Cuantas copias mantener. 0 = no borrar nunca ninguna (por defecto).
+RETENCION_BACKUPS=0
+
+# --- Patron para saber si Eden esta en marcha --------------------------------
+# Si tienes problemas (falsos positivos), ajustalo.
+EDEN_PROCESOS_PATRON="\.mount_[^/]*[Ee]den|[Ee]den[-_A-Za-z0-9.]*\.AppImage|/[Ee]den([[:space:]]|$)|AppRun.*[Ee]den"
