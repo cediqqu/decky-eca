@@ -1,4 +1,4 @@
-# E.C.A — Eden Control Autoconfig
+# E.C.A: Eden Control Autoconfig
 
 A [Decky](https://decky.xyz/) plugin that configures [Eden](https://eden-emu.dev/)'s
 controllers from the Steam Quick Access Menu (QAM): it sets **Player 1**, picks
@@ -87,7 +87,7 @@ first.
    stays primary while it is connected.
 3. To change the primary controller, **double-tap** another card (less than
    1.5 s apart). A single tap only vibrates, so you cannot change it by accident.
-4. Set **how many DualSense controllers** to use (1–4) and what to do with the
+4. Set **how many DualSense controllers** to use (1 to 4) and what to do with the
    **built-in controller** under **Ajustes** (Settings).
 5. **Avanzado → Aplicar ahora** (Advanced → Apply now) writes the configuration.
    The badges on the cards show which player each controller would get before
@@ -100,8 +100,8 @@ always open, and **Recargar mandos** (Reload controllers) sits right below the
 cards.
 
 Each card shows the family **icon** (PlayStation, Xbox, Switch, Steam or
-built-in), the **connection** (Bluetooth, USB, Internal or Virtual), and — only
-when there are several controllers of the same type — a **MAC** suffix to tell
+built-in), the **connection** (Bluetooth, USB, Internal or Virtual), and, only
+when there are several controllers of the same type, a **MAC** suffix to tell
 them apart. Unknown controllers also show their name.
 
 Short notices are drawn inside the panel and disappear after 5 s. Long errors

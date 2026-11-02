@@ -1,4 +1,4 @@
-# E.C.A — Eden Control Autoconfig
+# E.C.A: Eden Control Autoconfig
 
 Plugin de [Decky](https://decky.xyz/) que configura los mandos de
 [Eden](https://eden-emu.dev/) desde el menú rápido de Steam (QAM): fija el
@@ -82,7 +82,7 @@ Para actualizar, instala el zip nuevo; no hace falta desinstalar antes.
    conectado.
 3. Para cambiar de principal, **dos toques seguidos** (menos de 1,5 s) sobre otra
    tarjeta. Un toque solo hace vibrar; así no se cambia sin querer.
-4. Ajusta **cuántos DualSense** usar (1–4) y qué hacer con el **mando integrado**
+4. Ajusta **cuántos DualSense** usar (1 a 4) y qué hacer con el **mando integrado**
    en **Ajustes**.
 5. En **Avanzado → Aplicar ahora** escribes la configuración. Los badges de las
    tarjetas muestran el jugador que le tocaría antes de aplicar; no se escribe
