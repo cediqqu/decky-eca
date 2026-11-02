@@ -1,99 +1,128 @@
-# E.C.A — Eden Control Autoconfig (plugin de Decky)
+# E.C.A — Eden Control Autoconfig
 
-Panel en el **menú rápido de Steam (QAM)** para gestionar los mandos de
-[Eden](https://eden-emu.dev/) sin abrir una terminal:
+Plugin de [Decky](https://decky.xyz/) que configura los mandos de
+[Eden](https://eden-emu.dev/) desde el menú rápido de Steam (QAM): fija el
+**Player 1**, elige **cuántos DualSense** usar y **qué hacer con el mando
+integrado**, y lo aplica al lanzar el juego desde [ES-DE](https://es-de.org/).
+Sin root.
 
-- Ver qué mandos ve Eden: tipo (DualSense / integrado / pad virtual), conexión
-  (Bluetooth / USB / virtual de Steam), puerto y **serie (MAC)**.
-- Elegir **qué mando es el Player 1**, aunque Steam cambie los puertos entre
-  sesiones.
-- Elegir **cuántos DualSense** configurar y qué hacer con el mando integrado.
-- **Previsualizar** lo que se aplicaría (no escribe nada), **aplicar**,
-  volver al estado anterior a E.C.A y ver el **log**.
+[![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-eca?label=release)](https://github.com/CeDiqqu/decky-eca/releases/latest)
+[![Licencia](https://img.shields.io/github/license/CeDiqqu/decky-eca)](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE)
 
-Todo se maneja con **mando o táctil**: D-pad + A/B. No hace falta teclado.
+[English](https://github.com/CeDiqqu/decky-eca/blob/main/README.en.md) · **Español**
+
+> **Estado:** v1.0.0 (2 nov 2026), primera versión pública. Probada en **ROG Xbox
+> Ally X** con SteamOS y DualSense por Bluetooth. Mantenida por
+> [CeDiqqu](https://github.com/CeDiqqu), sin cadencia fija.
+
+Pensado para PC de mano con SteamOS y ES-DE (EmuDeck), no para Windows.
+
+## Por qué E.C.A
+
+- **El Player 1 va por MAC, no por puerto.** Steam puede renumerar los puertos
+  entre sesiones; E.C.A fija el mando concreto.
+- **En tu configuración, solo escribe un bloque marcado** al final de
+  `eden-autoconfig.conf`. El resto del fichero, tus plantillas y tus copias
+  quedan intactos.
+- **Corre como `deck`, sin root**, para que Eden siga pudiendo escribir su
+  `qt-config.ini`.
+- **No reimplementa la lógica**: el panel llama a los scripts de
+  `eden-autoconfig`, los mismos que puedes usar por terminal.
+- **Se puede deshacer**: restaura el `qt-config.ini` original, quita el bloque y
+  desactiva el hook.
+
+Cuándo **no** usarlo: si no lanzas los juegos desde ES-DE (el hook vive ahí), si
+tu handheld no es ASUS (el patrón del mando integrado puede necesitar ajuste) o
+si necesitas fijar más de un jugador por MAC.
 
 ## Requisitos
 
-- Decky Loader **3.x** (`api_version: 1`).
-- SteamOS (probado en **ROG Ally X**).
-- ES-DE con *Custom Event Scripts* activado (el panel avisa y lo explica).
-- Este plugin **no** necesita root: corre como `deck`, para que Eden pueda
-  seguir escribiendo su configuración.
+- **Decky Loader** con `api_version: 1` (el plugin declara ese valor).
+- **SteamOS** en un PC de mano (probado en ROG Xbox Ally X). No soporta Windows.
+- **Eden** (AppImage) con el perfil `emudeck` en
+  `<config>/input/emudeck.ini`, que crea EmuDeck. Si usas otro perfil, cambia
+  `PERFIL` en `~/eden-autoconfig/eden-autoconfig.conf`.
+- **ES-DE** con *Custom Event Scripts* activado. El plugin espera ES-DE en
+  `~/ES-DE` (la ruta de EmuDeck); si está en otro sitio, el hook no se instala
+  solo.
+- **Eden cerrado** antes de *Aplicar* o *Restaurar*. Al aplicar, el script se
+  niega si Eden está en marcha; al restaurar, ciérralo para que no reescriba el
+  `qt-config.ini` al salir.
+- Opcional: permiso de escritura en `/dev/hidraw*` para la vibración. Si no lo
+  hay, el panel lo diagnostica y el resto sigue funcionando.
 
 ## Instalación
 
-1. Descarga `eca-decky.zip` de la última Release (o genera el tuyo
-   con `bash build.sh`).
-2. En la consola: **Decky → Developer → Install Plugin from ZIP**.
-   Se instala en `~/homebrew/plugins/EdenAutoconfig/` (la carpeta conserva
-   ese nombre a propósito: así la actualización sustituye a la versión
-   anterior en vez de dejar dos plugins instalados).
-3. Abre el panel del plugin en el menú rápido y pulsa **Instalar scripts**
-   (la primera vez). Eso copia los scripts a `~/eden-autoconfig`, deja el hook
-   de ES-DE en `~/ES-DE/scripts/game-start/` y comprueba que SDL responde.
-4. En ES-DE: *Other settings → Enable custom event scripts*.
+1. Descarga **[eca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/eca-decky.zip)**.
+2. En la consola: **Decky → Developer → Install Plugin from ZIP**. Se instala en
+   `~/homebrew/plugins/EdenAutoconfig/` (la carpeta conserva ese nombre para que
+   la actualización sustituya a la versión anterior).
+3. Abre el panel en el menú rápido y pulsa **Instalar scripts** (solo la primera
+   vez). Copia los scripts a `~/eden-autoconfig`, deja el hook en
+   `~/ES-DE/scripts/game-start/` si existe esa carpeta y comprueba que SDL
+   responde.
+4. En ES-DE: **Other settings → Enable custom event scripts**.
 
-## Uso diario
+Comprueba que en **Estado** aparece `scripts 1.0.0 · hook OK`. También puedes
+comprobarlo por terminal:
 
-1. Conecta los mandos.
-2. Abre el panel → **Recargar mandos**.
-3. Con **un solo mando**, se fija solo como **mando principal**: su tarjeta
-   lleva una **★ dorada** arriba a la derecha. Al conectar más, sigue siendo el
-   principal hasta que pulses **A** en otro (no hace falta liberar nada).
-4. Cada tarjeta se identifica por su **icono** (PlayStation, Xbox, Switch,
-   Steam o mando integrado) y muestra la **conexión** (`Bluetooth`, `USB`,
-   `Interno`, `Virtual`) con su icono. Solo si el mando es **desconocido**
-   aparece su nombre. Arriba a la derecha: **★ dorada** si es el principal, o el
-   **número de jugador** en un badge azul (`2`, `3`, `4`…). Con **dos o más**
-   mandos del mismo tipo se añade un sufijo de la MAC.
-5. Con **dos o más mandos** la lista pasa a **tarjetas cuadradas, 2 por fila**
-   (4 mandos = 2 filas de 2). Con uno solo se ve una tarjeta ancha.
-6. Ajusta cuántos mandos configurar y qué hacer con el integrado.
-7. **Recargar mandos** está justo debajo de las tarjetas (el panel ya se
-   refresca al abrirse).
-8. **Estado**, **Ajustes** y **Avanzado** están **plegadas**: pulsa A en su
-   cabecera para abrirlas (la cabecera muestra un resumen, así no hace falta
-   abrirlas para nada habitual). La sección **Mandos** siempre está abierta.
-9. Todo lo de soporte (*Aplicar ahora*, *Restaurar todo*, *Ver log*) está
-   dentro de **Avanzado**, fuera del camino normal.
+```bash
+~/eden-autoconfig/eden-autoconfig.sh --status
+```
 
-Los avisos cortos (por qué no se puede fijar un mando, "pulsa otra vez", etc.)
-salen como **notificaciones** que Steam retira solas. Si el aviso es largo (el
-diagnóstico de `hidraw`), se abre en una **ventana** para poder leerlo o
-copiarlo.
+Debe encontrar Eden, el perfil `emudeck` y decir `Eden en ejecucion: no`.
 
-### Reconocer un mando (vibración)
+Para actualizar, instala el zip nuevo; no hace falta desinstalar antes.
 
-- **A sobre una tarjeta** → ese mando **vibra 300 ms** y la tarjeta destella en
-  cian. Sirve para saber cuál es cuál cuando se han mezclado.
-- **Dos toques seguidos (menos de 1,5 s)** → ese mando pasa a ser el principal.
-  Un solo toque solo vibra, así no se cambia el principal sin querer.
-- Solo DualSense (el integrado y los de otros tipos usan otro protocolo). Si no
-  hay permisos sobre `/dev/hidraw*`, el panel lo dice.
-- Para encontrar el mando se usa su **MAC** (`uniq` o `HID_UNIQ` del `uevent`);
-  si el sistema no la da, se usa el único DualSense conectado o el **orden de
-  puerto**. Si aun así falla, el panel muestra un **diagnóstico** con lo que ve
-  en `/sys/class/hidraw`.
-- Nota técnica: el reporte de Bluetooth lleva un **CRC-32 con semilla `0xA2`**
-  (`crc32(0xA2 || reporte)`). Con un CRC normal, el mando descarta el reporte en
-  silencio.
+## Uso rápido
 
-El botón **Instalar scripts** solo aparece si faltan o están desfasados; cuando
-todo está al día, no ocupa sitio.
+1. Conecta los mandos y abre el panel: se refresca solo.
+2. Con **un solo DualSense**, se fija solo como principal y su tarjeta lleva una
+   **★ dorada**. Si ya hay uno fijado, sigue siendo el principal mientras esté
+   conectado.
+3. Para cambiar de principal, **dos toques seguidos** (menos de 1,5 s) sobre otra
+   tarjeta. Un toque solo hace vibrar; así no se cambia sin querer.
+4. Ajusta **cuántos DualSense** usar (1–4) y qué hacer con el **mando integrado**
+   en **Ajustes**.
+5. En **Avanzado → Aplicar ahora** escribes la configuración. Los badges de las
+   tarjetas muestran el jugador que le tocaría antes de aplicar; no se escribe
+   nada hasta ese momento.
 
-### Mando integrado con 4 mandos
+**Estado** es una fila fija con el escenario, los mandos, la versión y el estado
+del hook. **Ajustes** y **Avanzado** están plegados: pulsa A en su cabecera para
+abrirlos. **Mandos** siempre está abierto y **Recargar mandos** está justo debajo
+de las tarjetas.
 
-Con **4 mandos** conectados no queda hueco: el mando integrado pasa solo a
-**«no usar»** (la fila indica `(auto)` y no se puede cambiar). Cuando
-desconectas uno, el panel **recupera tu elección anterior** (`primero` o
-`ultimo`) automáticamente. Tu preferencia se guarda en
-`~/.config/eden-autoconfig-decky/estado.json`.
+Cada tarjeta muestra el **icono** de la familia (PlayStation, Xbox, Switch, Steam
+o mando integrado), la **conexión** (Bluetooth, USB, Interno o Virtual) y, solo
+si hay varios del mismo tipo, un sufijo de la **MAC** para distinguirlos. Los
+mandos desconocidos muestran además su nombre.
 
-## Cómo guarda tus ajustes
+Los avisos cortos se pintan dentro del panel y desaparecen a los 5 s. Los errores
+largos (por ejemplo, el diagnóstico de `hidraw`) se abren en una ventana para
+poder leerlos o copiarlos.
 
-Escribe un **bloque gestionado** al final de
-`~/eden-autoconfig/eden-autoconfig.conf`:
+## Reconocer un mando por vibración
+
+- **Un toque** sobre una tarjeta DualSense: el mando vibra 300 ms y la tarjeta
+  destella en cian.
+- **Dos toques seguidos** (menos de 1,5 s): ese mando pasa a ser el principal.
+- **Solo DualSense**: es el único protocolo implementado. El mando integrado no
+  vibra; si usas otro tipo de mando, usa otra vía para identificarlo.
+- Para localizarlo se usa su MAC (`uniq` o `HID_UNIQ` del `uevent`). Si el
+  sistema no la da, se usa el único DualSense conectado o el orden de puerto. Si
+  falla, el panel muestra un diagnóstico de `/sys/class/hidraw`.
+- Si no hay permisos sobre `/dev/hidraw*`, la vibración no funciona; el resto del
+  plugin sí.
+
+## Qué escribe (y cómo volver atrás)
+
+Una vez instalados los scripts, el panel solo escribe dos cosas en tu casa:
+
+1. Un **bloque gestionado** al final de `~/eden-autoconfig/eden-autoconfig.conf`.
+2. Su estado privado en `~/.config/eden-autoconfig-decky/`.
+
+El bloque se sustituye entero; el resto del `.conf` no se toca. Ejemplo:
 
 ```ini
 # >>> eden-autoconfig-decky >>>
@@ -101,73 +130,95 @@ P1_SERIE="4c:b9:9b:e9:bc:26"
 JUGADORES_MAX=2
 ORDEN_INTEGRADO="ignorar"
 ORDEN_DUALSENSE="mac"
+RETENCION_BACKUPS=10
 # <<< eden-autoconfig-decky <<<
 ```
 
-- Solo se reemplaza ese bloque; **el resto del fichero queda igual** (con copia
-  de seguridad previa en `~/.config/eden-autoconfig-decky/`).
-- El hook de ES-DE lee ese mismo `.conf`, así que lo que elijas en el panel es
-  lo que se aplica al lanzar el juego.
-- Si borras el bloque, vuelves exactamente a tu configuración anterior.
+- El hook de ES-DE lee ese mismo `.conf`, así que lo que eliges en el panel es lo
+  que se aplica al lanzar el juego.
+- Si el `.conf` ya existía, se guarda una copia del anterior en
+  `~/.config/eden-autoconfig-decky/` antes de reemplazar el bloque.
+- Si borras el bloque, el `.conf` vuelve a tus valores anteriores. El
+  `qt-config.ini` no se toca por borrar el bloque.
 
-## Restaurar todo (volver atrás)
+**Restaurar todo** (en **Avanzado**) devuelve el equipo al estado anterior a
+E.C.A. Eden debe estar cerrado:
 
-**Avanzado → Restaurar todo** devuelve el equipo al estado anterior a E.C.A:
-
-1. Restaura el `qt-config.ini` **original**, guardado la primera vez en
+1. Restaura el `qt-config.ini` original, guardado la primera vez en
    `~/eden-autoconfig/stock/qt-config.ini` (ese fichero no se borra nunca).
-2. Quita el **bloque de preferencias** del `.conf`.
-3. **Desactiva el hook** de ES-DE (lo mueve fuera de
+2. Quita el bloque de preferencias del `.conf`.
+3. Desactiva el hook de ES-DE (lo mueve fuera de
    `~/ES-DE/scripts/game-start/`).
 
-Se guarda una copia del estado actual antes de tocar nada, así que se puede
-deshacer. Después, el panel muestra arriba **«Reactivar hook»**: al pulsarlo se
-vuelve a copiar el hook y todo funciona como antes.
+Antes de tocar nada se guarda una copia del estado actual en
+`~/eden-autoconfig/backups/`. Después, el panel muestra **Reactivar hook** para
+volver a copiarlo. Si necesitas deshacer la restauración:
 
-### Copias de seguridad
+```bash
+~/eden-autoconfig/eden-autoconfig.sh --list-backups
+~/eden-autoconfig/eden-autoconfig.sh --restore latest
+```
 
-El bloque del plugin fija `RETENCION_BACKUPS=10`: el script conserva solo las
-**10 copias más recientes** de `qt-config.ini` (unos 300 KB) y borra el resto en
-cada aplicación. El original para «Restaurar todo» vive aparte, en `stock/`, y
-no entra en esa rotación.
+El plugin fija `RETENCION_BACKUPS=10`: conserva las **10 copias más recientes** de
+`qt-config.ini` y borra las demás en cada aplicación. El original de `stock/` vive
+aparte y no entra en esa rotación.
+
+### Desinstalar
+
+1. **Avanzado → Restaurar todo** para devolver el `qt-config.ini` y quitar el
+   hook.
+2. Quita el plugin desde Decky.
+
+Si desinstalas sin restaurar, el hook seguirá en
+`~/ES-DE/scripts/game-start/` y seguirá aplicando el `.conf` aunque el plugin ya
+no esté. `~/eden-autoconfig` no se borra al desinstalar: ahí están tus plantillas,
+backups y el `.conf`.
 
 ## Límites conocidos
 
-- Solo se puede fijar **un mando concreto como mando principal**
-  (`P1_SERIE`). El resto de jugadores sigue el orden elegido (conexión o MAC).
-  Si quieres "P2 = este mando exacto", hoy no se puede sin tocar el script.
+- Solo se puede fijar **un mando concreto como Player 1** (`P1_SERIE`). El resto
+  sigue el orden elegido (conexión o MAC). No hay “P2 = este mando exacto”.
 - Si un mando no informa de su serie (pasa con algunos pads virtuales), no se
   puede fijar; el panel te lo dice.
-- El **mando integrado** no se fija por serie: se pone como Player 1 con el
-  ajuste «Mando integrado → Player 1».
-- El cambio automático del integrado ocurre al **abrir el panel**, al
-  **Aplicar**. Si conectas el 4º DualSense y lanzas el
-  juego sin pasar por el panel, el hook aplica lo que quedó guardado (con
-  `ultimo` serían 5 jugadores); con abrir el panel una vez queda corregido.
-- Probado solo en ROG Ally X. En otras consolas el patrón del mando integrado
-  (`INTEGRADO_PATRON`) puede necesitar ajuste en el `.conf`.
+- El **mando integrado** no se fija por serie: se pone como Player 1 con
+  **Ajustes → Mando integrado**.
+- Con **4 DualSense** conectados no queda hueco: el integrado pasa solo a **no
+  usar** y no se puede cambiar hasta que desconectes uno. Al desconectarlo, el
+  panel recupera tu elección anterior al volver a abrirse.
+- El cambio automático del integrado ocurre al **abrir el panel** o al
+  **Aplicar**. Si conectas el 4.º DualSense y lanzas el juego sin pasar por el
+  panel, el hook aplica lo que quedó guardado; con abrir el panel una vez queda
+  corregido.
+- Con **Steam Input activado** para ES-DE, Eden ve pads virtuales de Valve. El
+  panel detecta ese escenario, pero la asignación exacta Player N = DualSense N
+  solo es fiable con Steam Input desactivado para ES-DE.
+- Probado solo en **ROG Xbox Ally X**. En otras handhelds, `INTEGRADO_PATRON`
+  puede necesitar ajuste en el `.conf`.
 
 ## Desarrollo
 
 ```bash
-bash build.sh        # sincroniza scripts/ + compila + genera el zip
+npx tsc --noEmit          # tipado
+python3 test_backend.py   # pruebas del backend
+bash build.sh             # sincroniza scripts/ + compila + genera el zip
 ```
 
-Paleta del panel (estilo Joy-Con): azul `#0AB9E6` para lo general, rojo
-`#FF3C28` para el mando principal, dorado `#F5C518` para la estrella, verde
-`#32E632` (USB) y violeta `#B400E6` (virtual/otros). Las tarjetas usan fondo
-carbón con texto claro fijo, para que se vean igual en tema claro y oscuro.
+`build.sh` necesita Node 20+ y Python 3. El zip lleva una carpeta raíz
+`EdenAutoconfig/`.
 
-- `scripts/` es una **copia generada** desde `eden_controller/` (la carpeta de
-  los scripts, dentro de este mismo proyecto). **No se edita aquí**: los cambios
-  van a esa carpeta y se vuelven a copiar con `build.sh`.
-- `scripts/VERSION` guarda versión + hash; el panel compara el hash con lo
+- `scripts/` es una **copia generada** desde `eden_controller/` (la fuente de
+  verdad). No se edita ahí; los cambios van a `eden_controller/` y se copian con
+  `build.sh`.
+- `scripts/VERSION` guarda versión y hash; el panel compara el hash con lo
   instalado y avisa si está desactualizado.
-- El backend (`main.py`) no reimplementa nada: ejecuta los scripts instalados.
-  Se puede probar sin consola con un `HOME` falso y `EDEN_FAKE_SDL`.
+- El backend (`main.py`) no reimplementa nada: ejecuta los scripts instalados. Se
+  puede probar sin consola con un `HOME` falso y `EDEN_FAKE_SDL`.
+- Detalles de SDL, CRC del GUID, plantillas y diagnóstico:
+  [README de `eden_controller`](https://github.com/CeDiqqu/decky-eca/blob/main/eden_controller/README.md).
 
-## Desinstalar
+## Licencia
 
-Quita el plugin desde Decky. **No se borra** `~/eden-autoconfig` (ahí están tus
-plantillas, backups y el `.conf`); si quieres volver a la configuración previa
-del todo, borra el bloque marcado del `.conf`.
+BSD-3-Clause. Ver [LICENSE](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE).
+
+Si algo no cuadra, abre un [issue](https://github.com/CeDiqqu/decky-eca/issues)
+con el log de `~/eden-autoconfig/log.txt`.
