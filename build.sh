@@ -66,7 +66,6 @@ if [ -d "$ORIGEN" ]; then
     {
         printf 'version: %s\n' "$VERSION_SCRIPTS"
         printf 'hash: %s\n' "$HASH"
-        printf 'fecha: %s\n' "$(date +%Y-%m-%d)"
         printf 'origen: %s\n' "$(cd -- "$ORIGEN" && pwd -P)"
     } >"$DEST/VERSION"
 
