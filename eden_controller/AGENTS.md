@@ -157,6 +157,10 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
   cero; Cemu lo guarda **real**. Por eso el driver de Cemu llama al ayudante con
   `SDL_FUENTE=sistema SDL_GUID_MODO=cemu` (SDL del sistema sin normalizar y
   `PUERTO` contado solo entre gamepads, como hace Cemu).
+- El **plan compartido** (Dolphin y Cemu) vive en `eden-nucleo.sh`
+  (`nucleo_mandos` + `nucleo_planificar`): clasifica `dual|integrado|otro`,
+  respeta `ORDEN_INTEGRADO`, `P1_SERIE` y `JUGADORES_MAX`. Eden mantiene su
+  propio planificador.
 - Cemu identifica el mando por `uuid = <puerto>_<guid>`; `display_name`,
   `<profile>` y `<type>` no intervienen en la búsqueda. El driver solo cambia el
   dispositivo: conserva tipo, perfil, bindings y las entradas no-SDL (DSU).

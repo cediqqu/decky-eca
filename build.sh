@@ -66,8 +66,9 @@ if [ -d "$ORIGEN" ]; then
     chmod 755 "$DEST"/*.sh "$DEST/es-de-hooks"/*.sh 2>/dev/null
     chmod 644 "$DEST/eden-autoconfig.conf.example" 2>/dev/null
 
-    HASH="$(cat "$DEST/eden-autoconfig.sh" "$DEST/eden-mandos-sdl.sh" \
-                "$DEST/eden-diagnostico.sh" 2>/dev/null | sha256sum | cut -c1-12)"
+    # hash informativo de TODO lo que se instala (los .sh + la plantilla)
+    HASH="$(for f in "${FICHEROS[@]}"; do cat "$DEST/$f" 2>/dev/null; done \
+            | sha256sum | cut -c1-12)"
     {
         printf 'version: %s\n' "$VERSION_SCRIPTS"
         printf 'hash: %s\n' "$HASH"

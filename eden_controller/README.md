@@ -691,6 +691,10 @@ puerto. EmuDeck ya deja los botones configurados.
 el guid a la SDL del sistema. Se conservan el tipo (GamePad/Pro), el perfil y
 los bindings; las ranuras que sobran quedan en `Disconnected`.
 
+En los dos, el integrado entra según `ORDEN_INTEGRADO`: `ignorar` (por
+defecto), `primero` (Player 1) o `ultimo` (detrás de los DualSense). Si no hay
+ningún DualSense, entra siempre y de primero. `P1_SERIE` sigue mandando.
+
 Comandos útiles:
 
 ```bash

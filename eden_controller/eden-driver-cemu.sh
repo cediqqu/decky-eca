@@ -86,99 +86,8 @@ c_en_ejecucion() {
 }
 
 # ---------------------------------------------------------------- mandos ----
-# Salida: una linea por mando  nombre|sdl|serie|indice|uuid
-c_mandos() {
-    local helper out
-    helper="$(nucleo_helper_sdl)" || return 1
-    out="$(SDL_FUENTE=sistema SDL_GUID_MODO=cemu bash "$helper" 2>/dev/null)" || return 1
-    printf '%s\n' "$out" | while IFS='|' read -r nombre guid puerto tipo esgp sdl serie indice; do
-        case "$nombre" in ''|'#'*) continue ;; esac
-        [ "${esgp:-0}" = "1" ] || continue
-        printf '%s|%s|%s|%s|%s\n' "$nombre" "${sdl:-$nombre}" "${serie:-}" \
-            "${indice:-0}" "${puerto:-0}_${guid}"
-    done
-}
-
-# Compara un nombre con un patron tipo "a|b|c" (glob, sin distinguir mayusculas)
-c_coincide() {
-    local nombre patron p
-    nombre="${1,,}"
-    patron="${2,,}"
-    local IFS='|'
-    for p in $patron; do
-        # shellcheck disable=SC2254
-        case "$nombre" in $p) return 0 ;; esac
-    done
-    return 1
-}
-
-# ---------------------------------------------------------------- plan ------
-# Rellena PLAN_NOMBRE / PLAN_UUID / PLAN_INDICE
-c_planificar() {
-    nucleo_prefs
-    PLAN_NOMBRE=()
-    PLAN_UUID=()
-    PLAN_INDICE=()
-
-    local linea nombre sdl serie indice uuid
-    local ds=() otros=()
-
-    while IFS= read -r linea; do
-        [ -n "$linea" ] || continue
-        IFS='|' read -r nombre sdl serie indice uuid <<<"$linea"
-        if c_coincide "$nombre" "${DUALSENSE_PATRON:-*dualsense*}"; then
-            ds+=("$linea")
-        else
-            otros+=("$linea")
-        fi
-    done < <(c_mandos)
-
-    local lista=()
-    if [ "${#ds[@]}" -gt 0 ]; then
-        lista=("${ds[@]}")
-    else
-        lista=("${otros[@]+"${otros[@]}"}")
-        [ "${#lista[@]}" -gt 0 ] && c_warn "no hay DualSense: uso los mandos disponibles"
-    fi
-    [ "${#lista[@]}" -gt 0 ] || return 2
-
-    # orden por indice SDL (orden de conexion)
-    local ordenada=()
-    while IFS= read -r linea; do ordenada+=("$linea"); done < <(
-        printf '%s\n' "${lista[@]}" | sort -t'|' -k4,4n
-    )
-    lista=("${ordenada[@]}")
-
-    # el principal (P1_SERIE) va primero
-    if [ -n "${P1_SERIE:-}" ]; then
-        local i out=()
-        for i in "${!lista[@]}"; do
-            IFS='|' read -r nombre sdl serie indice uuid <<<"${lista[$i]}"
-            if [ "$serie" = "$P1_SERIE" ]; then
-                out=("${lista[$i]}")
-                unset 'lista[$i]'
-                break
-            fi
-        done
-        lista=("${out[@]+"${out[@]}"}" "${lista[@]+"${lista[@]}"}")
-    fi
-
-    local tope="$JUGADORES_MAX"
-    [ "$tope" -gt 8 ] 2>/dev/null && tope=8
-    [ "$tope" -lt 1 ] 2>/dev/null && tope=1
-
-    local i
-    for i in "${!lista[@]}"; do
-        [ "$i" -lt "$tope" ] || break
-        IFS='|' read -r nombre sdl serie indice uuid <<<"${lista[$i]}"
-        PLAN_NOMBRE+=("$sdl")
-        PLAN_UUID+=("$uuid")
-        PLAN_INDICE+=("$indice")
-    done
-
-    [ "${#PLAN_UUID[@]}" -gt 0 ] || return 2
-    return 0
-}
+# La lista y el plan los pone el nucleo (igual que Eden/Dolphin).
+c_planificar() { nucleo_planificar cemu; }
 
 # -------------------------------------------------------------- plantilla ---
 # Para el jugador N: Deck-PN.xml -> fichero actual -> controllerTemplates/pro.xml
@@ -437,7 +346,7 @@ c_cmd_status() {
         local i
         c_say "mandos a asignar   : ${#PLAN_UUID[@]}"
         for i in "${!PLAN_UUID[@]}"; do
-            c_say "  Mando $((i + 1)) = ${PLAN_NOMBRE[$i]}"
+            c_say "  Mando $((i + 1)) = ${PLAN_SDL[$i]}  [${PLAN_CLASE[$i]}]"
             c_say "             uuid ${PLAN_UUID[$i]}"
         done
     else
@@ -491,7 +400,7 @@ c_cmd_dryrun() {
         f="$(c_perfiles "$dir")/controller$i.xml"
         c_say "  Mando $n  ($(basename "$f"))"
         c_say "    uuid         = ${PLAN_UUID[$i]}"
-        c_say "    display_name = ${PLAN_NOMBRE[$i]}"
+        c_say "    display_name = ${PLAN_SDL[$i]}"
     done
     for n in $(seq $(( ${#PLAN_UUID[@]} + 1 )) 8); do
         f="$(c_perfiles "$dir")/controller$((n - 1)).xml"
@@ -516,9 +425,9 @@ c_cmd_aplicar() {
     for i in "${!PLAN_UUID[@]}"; do
         n=$((i + 1))
         f="$(c_perfiles "$dir")/controller$i.xml"
-        c_escribir "$n" "$f" "${PLAN_UUID[$i]}" "${PLAN_NOMBRE[$i]}" poner "$dir" \
+        c_escribir "$n" "$f" "${PLAN_UUID[$i]}" "${PLAN_SDL[$i]}" poner "$dir" \
             || return 1
-        c_say "Mando $n -> ${PLAN_NOMBRE[$i]}"
+        c_say "Mando $n -> ${PLAN_SDL[$i]}"
     done
 
     # ranuras sobrantes -> Disconnected (no se borran ficheros)
