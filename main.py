@@ -55,10 +55,12 @@ PREF_DEF = {
     "ORDEN_INTEGRADO": "ignorar",
     "ORDEN_DUALSENSE": "conexion",
     "RETENCION_BACKUPS": "10",
+    "COLOR": "azul",
 }
 
 INTEGRADOS = ("ignorar", "primero", "ultimo")
 ORDENES = ("conexion", "mac")
+COLORES = ("azul", "verde", "violeta", "naranja", "rosa", "turquesa")
 
 # una serie es una MAC (aa:bb:...) o similar; nunca dejamos pasar otra cosa
 RE_SERIE = re.compile(r"^[A-Za-z0-9:._-]{0,64}$")
@@ -195,6 +197,9 @@ def _validar(prefs):
         ret = 10
     out["RETENCION_BACKUPS"] = str(ret if ret >= 0 else 10)
 
+    color = str(prefs.get("COLOR", "azul")).strip()
+    out["COLOR"] = color if color in COLORES else "azul"
+
     return out
 
 
@@ -246,6 +251,7 @@ def _escribir_prefs(prefs):
               'ORDEN_INTEGRADO="%s"' % prefs["ORDEN_INTEGRADO"],
               'ORDEN_DUALSENSE="%s"' % prefs["ORDEN_DUALSENSE"],
               "RETENCION_BACKUPS=%s" % prefs["RETENCION_BACKUPS"],
+              'COLOR="%s"' % prefs["COLOR"],
               END, ""]
     nuevo = texto + "\n".join(bloque)
 
@@ -1019,6 +1025,10 @@ class Plugin:
         elif clave == "orden":
             i = ORDENES.index(prefs["ORDEN_DUALSENSE"])
             prefs["ORDEN_DUALSENSE"] = ORDENES[(i + 1) % len(ORDENES)]
+
+        elif clave == "color":
+            i = COLORES.index(prefs["COLOR"])
+            prefs["COLOR"] = COLORES[(i + 1) % len(COLORES)]
 
         else:
             return await self.estado()

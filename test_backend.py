@@ -593,6 +593,14 @@ async def main():
     r = await mod.Plugin().restaurar_todo()
     check("sin copias avisa", r["ok"] is False and "copia" in r["salida"], r)
 
+    # el color del plugin se guarda en el bloque gestionado
+    est = await mod.Plugin().ciclar("color")
+    check("cicla el color", est["prefs"]["COLOR"] == "verde", est["prefs"].get("COLOR"))
+    est = await mod.Plugin().ciclar("color")
+    check("cicla otra vez", est["prefs"]["COLOR"] == "violeta", est["prefs"].get("COLOR"))
+    with open(os.path.join(base, "eden-autoconfig.conf"), encoding="utf-8") as fh:
+        check("color en el bloque", 'COLOR="violeta"' in fh.read())
+
     shutil.rmtree(tmp, ignore_errors=True)
 
     print()

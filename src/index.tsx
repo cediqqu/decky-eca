@@ -30,6 +30,7 @@ import {
   FaInfoCircle,
   FaMicrochip,
   FaMinus,
+  FaPalette,
   FaPlaystation,
   FaSlidersH,
   FaStar,
@@ -65,6 +66,7 @@ type Prefs = {
   JUGADORES_MAX: string;
   ORDEN_INTEGRADO: string;
   ORDEN_DUALSENSE: string;
+  COLOR: string;
 };
 
 type Maquina = { vendor: string; producto: string; placa: string };
@@ -116,14 +118,28 @@ type Salida = { exit: number; salida: string; mensaje?: string };
 const C = {
   azul: "#0AB9E6",
   rojo: "#FF3C28",
-  verde: "#32E632",
-  violeta: "#B400E6",
+  verde: "#3DDC84",
+  violeta: "#B47BFF",
+  naranja: "#FF8A3D",
+  rosa: "#FF5C8A",
+  turquesa: "#2EE6C8",
+  ambar: "#FFB454",
   dorado: "#F5C518",
   carbon1: "#262628",
   carbon2: "#141416",
   texto: "#EDEFF2",
   texto2: "#B8BCC2",
   gris: "#8A8F98",
+};
+
+// acentos que puede elegir el usuario (el "color" del plugin)
+const ACENTOS: Record<string, { nombre: string; hex: string }> = {
+  azul: { nombre: "Azul", hex: "#0AB9E6" },
+  verde: { nombre: "Verde", hex: "#3DDC84" },
+  violeta: { nombre: "Violeta", hex: "#B47BFF" },
+  naranja: { nombre: "Naranja", hex: "#FF8A3D" },
+  rosa: { nombre: "Rosa", hex: "#FF5C8A" },
+  turquesa: { nombre: "Turquesa", hex: "#2EE6C8" },
 };
 
 function hexA(hex: string, alfa: number): string {
@@ -220,10 +236,10 @@ const ESTILOS = `
 .ede-tarjeta { transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease; }
 .ede-zona .gpfocus .ede-tarjeta,
 .ede-celda:hover .ede-tarjeta {
-  border-color: rgba(10,185,230,0.9) !important;
+  border-color: var(--ede-acento, #0AB9E6) !important;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22),
-              0 0 0 2px rgba(10,185,230,0.85),
-              0 0 14px rgba(10,185,230,0.45) !important;
+              0 0 0 2px var(--ede-acento, #0AB9E6),
+              0 0 14px var(--ede-acento-halo, rgba(10,185,230,0.45)) !important;
   transform: scale(1.02);
 }
 .ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
@@ -1345,6 +1361,8 @@ function Content() {
   const integradoNombre =
     est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
   const maquinaNombre = nombreMaquina(est.maquina);
+  const acentoInfo = ACENTOS[p.COLOR] ?? ACENTOS.azul;
+  const acento = acentoInfo.hex;
 
   // la MAC solo cuando hay mas de un mando del mismo tipo
   const repetidos = (clase: string) =>
@@ -1376,7 +1394,14 @@ function Content() {
   }`;
 
   return (
-    <>
+    <div
+      style={
+        {
+          "--ede-acento": acento,
+          "--ede-acento-halo": hexA(acento, 0.45),
+        } as CSSProperties
+      }
+    >
       <style>{ESTILOS}</style>
 
       {maquinaNombre ? (
@@ -1407,7 +1432,7 @@ function Content() {
                   style={{
                     display: "flex",
                     flex: "0 0 auto",
-                    color: C.azul,
+                    color: acento,
                   }}
                 >
                   <IconoMaquina
@@ -1486,7 +1511,7 @@ function Content() {
               width: "100%",
             }}
           >
-            <CirculoIcono color={C.azul} lado={26}>
+            <CirculoIcono color={acento} lado={26}>
               <FaInfoCircle size={12} />
             </CirculoIcono>
             <div style={{ minWidth: 0, fontSize: "0.78em", lineHeight: 1.35 }}>
@@ -1505,6 +1530,7 @@ function Content() {
 
       <Seccion
         titulo="Mandos"
+        color={acento}
         icono={<FaGamepad size={13} />}
         abierta={true}
       >
@@ -1599,6 +1625,7 @@ function Content() {
       <PanelSection>
         <PanelSectionRow>
           <TarjetaFila
+            color={C.turquesa}
             icono={<FaFileAlt size={16} />}
             titulo="Asignación"
             detalle={resumenPlanes}
@@ -1609,6 +1636,7 @@ function Content() {
 
       <Seccion
         titulo="Ajustes"
+        color={C.violeta}
         icono={<FaSlidersH size={12} />}
         resumen={resumenAjustes}
         abierta={Boolean(abiertas.ajustes)}
@@ -1617,6 +1645,7 @@ function Content() {
         <Rejilla>
           <div className="ede-celda">
             <TarjetaAccion
+              color={acento}
               icono={<FaGamepad size={17} />}
               anim="latido"
               titulo="Mandos"
@@ -1626,6 +1655,7 @@ function Content() {
           </div>
           <div className="ede-celda">
             <TarjetaAccion
+              color={C.naranja}
               icono={
                 <IconoMaquina
                   maquina={est.maquina}
@@ -1640,12 +1670,22 @@ function Content() {
               onClick={() => ciclar("integrado")}
             />
           </div>
+          <div className="ede-celda">
+            <TarjetaAccion
+              color={acento}
+              icono={<FaPalette size={17} />}
+              anim="pop"
+              titulo="Color"
+              detalle={acentoInfo.nombre}
+              onClick={() => ciclar("color")}
+            />
+          </div>
         </Rejilla>
       </Seccion>
 
       <Seccion
         titulo="Avanzado"
-        color={C.gris}
+        color={C.ambar}
         icono={<FaCog size={13} />}
         abierta={Boolean(abiertas.avanzado)}
         onToggle={() => toggle("avanzado")}
@@ -1653,6 +1693,7 @@ function Content() {
         <Rejilla>
           <div className="ede-celda">
             <TarjetaAccion
+              color={C.verde}
               icono={<FaCheck size={17} />}
               anim="pop"
               titulo="Aplicar"
@@ -1682,7 +1723,7 @@ function Content() {
           </div>
         </Rejilla>
       </Seccion>
-    </>
+    </div>
   );
 }
 

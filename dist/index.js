@@ -109,6 +109,8 @@ function FaXbox (props) {
   return GenIcon({"attr":{"viewBox":"0 0 512 512"},"child":[{"tag":"path","attr":{"d":"M496 384H160v-16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h80v16c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-16h336c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm0-160h-80v-16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h336v16c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-16h80c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm0-160H288V48c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v16H16C7.2 64 0 71.2 0 80v32c0 8.8 7.2 16 16 16h208v16c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16v-16h208c8.8 0 16-7.2 16-16V80c0-8.8-7.2-16-16-16z"},"child":[]}]})(props);
 }function FaQuestion (props) {
   return GenIcon({"attr":{"viewBox":"0 0 384 512"},"child":[{"tag":"path","attr":{"d":"M202.021 0C122.202 0 70.503 32.703 29.914 91.026c-7.363 10.58-5.093 25.086 5.178 32.874l43.138 32.709c10.373 7.865 25.132 6.026 33.253-4.148 25.049-31.381 43.63-49.449 82.757-49.449 30.764 0 68.816 19.799 68.816 49.631 0 22.552-18.617 34.134-48.993 51.164-35.423 19.86-82.299 44.576-82.299 106.405V320c0 13.255 10.745 24 24 24h72.471c13.255 0 24-10.745 24-24v-5.773c0-42.86 125.268-44.645 125.268-160.627C377.504 66.256 286.902 0 202.021 0zM192 373.459c-38.196 0-69.271 31.075-69.271 69.271 0 38.195 31.075 69.27 69.271 69.27s69.271-31.075 69.271-69.271-31.075-69.27-69.271-69.27z"},"child":[]}]})(props);
+}function FaPalette (props) {
+  return GenIcon({"attr":{"viewBox":"0 0 512 512"},"child":[{"tag":"path","attr":{"d":"M204.3 5C104.9 24.4 24.8 104.3 5.2 203.4c-37 187 131.7 326.4 258.8 306.7 41.2-6.4 61.4-54.6 42.5-91.7-23.1-45.4 9.9-98.4 60.9-98.4h79.7c35.8 0 64.8-29.6 64.9-65.3C511.5 97.1 368.1-26.9 204.3 5zM96 320c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm32-128c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128-64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128 64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z"},"child":[]}]})(props);
 }function FaMinus (props) {
   return GenIcon({"attr":{"viewBox":"0 0 448 512"},"child":[{"tag":"path","attr":{"d":"M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"},"child":[]}]})(props);
 }function FaMicrochip (props) {
@@ -141,14 +143,26 @@ function FaXbox (props) {
 const C = {
     azul: "#0AB9E6",
     rojo: "#FF3C28",
-    verde: "#32E632",
-    violeta: "#B400E6",
+    verde: "#3DDC84",
+    violeta: "#B47BFF",
+    naranja: "#FF8A3D",
+    turquesa: "#2EE6C8",
+    ambar: "#FFB454",
     dorado: "#F5C518",
     carbon1: "#262628",
     carbon2: "#141416",
     texto: "#EDEFF2",
     texto2: "#B8BCC2",
     gris: "#8A8F98",
+};
+// acentos que puede elegir el usuario (el "color" del plugin)
+const ACENTOS = {
+    azul: { nombre: "Azul", hex: "#0AB9E6" },
+    verde: { nombre: "Verde", hex: "#3DDC84" },
+    violeta: { nombre: "Violeta", hex: "#B47BFF" },
+    naranja: { nombre: "Naranja", hex: "#FF8A3D" },
+    rosa: { nombre: "Rosa", hex: "#FF5C8A" },
+    turquesa: { nombre: "Turquesa", hex: "#2EE6C8" },
 };
 function hexA(hex, alfa) {
     const h = hex.replace("#", "");
@@ -239,10 +253,10 @@ const ESTILOS = `
 .ede-tarjeta { transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease; }
 .ede-zona .gpfocus .ede-tarjeta,
 .ede-celda:hover .ede-tarjeta {
-  border-color: rgba(10,185,230,0.9) !important;
+  border-color: var(--ede-acento, #0AB9E6) !important;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22),
-              0 0 0 2px rgba(10,185,230,0.85),
-              0 0 14px rgba(10,185,230,0.45) !important;
+              0 0 0 2px var(--ede-acento, #0AB9E6),
+              0 0 14px var(--ede-acento-halo, rgba(10,185,230,0.45)) !important;
   transform: scale(1.02);
 }
 .ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
@@ -868,6 +882,8 @@ function Content() {
     const cuadricula = est.mandos.length >= 2;
     const integradoNombre = est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
     const maquinaNombre = nombreMaquina(est.maquina);
+    const acentoInfo = ACENTOS[p.COLOR] ?? ACENTOS.azul;
+    const acento = acentoInfo.hex;
     // la MAC solo cuando hay mas de un mando del mismo tipo
     const repetidos = (clase) => est.mandos.filter((x) => x.clase === clase).length > 1;
     const textoMandos = (e) => {
@@ -892,7 +908,10 @@ function Content() {
         return trozos.length ? trozos.join(" · ") : "sin datos";
     })();
     const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`;
-    return (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx("style", { children: ESTILOS }), maquinaNombre ? (SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
+    return (SP_JSX.jsxs("div", { style: {
+            "--ede-acento": acento,
+            "--ede-acento-halo": hexA(acento, 0.45),
+        }, children: [SP_JSX.jsx("style", { children: ESTILOS }), maquinaNombre ? (SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
                             display: "flex",
                             justifyContent: "flex-end",
                             width: "100%",
@@ -910,7 +929,7 @@ function Content() {
                             }, children: [SP_JSX.jsx("span", { style: {
                                         display: "flex",
                                         flex: "0 0 auto",
-                                        color: C.azul,
+                                        color: acento,
                                     }, children: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre, size: 13 }) }), SP_JSX.jsx("span", { style: {
                                         fontSize: "0.72em",
                                         fontWeight: 650,
@@ -934,7 +953,7 @@ function Content() {
                             alignItems: "center",
                             gap: "10px",
                             width: "100%",
-                        }, children: [SP_JSX.jsx(CirculoIcono, { color: C.azul, lado: 26, children: SP_JSX.jsx(FaInfoCircle, { size: 12 }) }), SP_JSX.jsxs("div", { style: { minWidth: 0, fontSize: "0.78em", lineHeight: 1.35 }, children: [SP_JSX.jsx("div", { style: { fontWeight: 700 }, children: "Estado" }), SP_JSX.jsxs("div", { style: { opacity: 0.7 }, children: [ESCENARIO_CORTO[est.escenario] ?? est.escenario, " \u00B7", " ", textoMandos(est), " \u00B7 scripts ", est.version, " \u00B7", " ", SP_JSX.jsx("span", { style: { color: est.hook ? C.verde : C.rojo }, children: est.hook ? "hook OK" : "hook falta" })] })] })] }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, children: [est.mandos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : cuadricula ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
+                        }, children: [SP_JSX.jsx(CirculoIcono, { color: acento, lado: 26, children: SP_JSX.jsx(FaInfoCircle, { size: 12 }) }), SP_JSX.jsxs("div", { style: { minWidth: 0, fontSize: "0.78em", lineHeight: 1.35 }, children: [SP_JSX.jsx("div", { style: { fontWeight: 700 }, children: "Estado" }), SP_JSX.jsxs("div", { style: { opacity: 0.7 }, children: [ESCENARIO_CORTO[est.escenario] ?? est.escenario, " \u00B7", " ", textoMandos(est), " \u00B7 scripts ", est.version, " \u00B7", " ", SP_JSX.jsx("span", { style: { color: est.hook ? C.verde : C.rojo }, children: est.hook ? "hook OK" : "hook falta" })] })] })] }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, children: [est.mandos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : cuadricula ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
                                 display: "grid",
                                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                                 gap: "6px",
@@ -950,7 +969,7 @@ function Content() {
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaGamepad, { size: 17 }), anim: "latido", titulo: "Mandos", detalle: `${p.JUGADORES_MAX} jugadores`, onClick: () => ciclar("max") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), anim: "pop", titulo: "Integrado", detalle: `${maquinaNombre ? `${maquinaNombre} · ` : ""}${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) })] }) }), SP_JSX.jsx(Seccion, { titulo: "Avanzado", color: C.gris, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", color: C.rojo, onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", color: C.gris, onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 17 }), anim: "latido", titulo: "Mandos", detalle: `${p.JUGADORES_MAX} jugadores`, onClick: () => ciclar("max") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), anim: "pop", titulo: "Integrado", detalle: `${maquinaNombre ? `${maquinaNombre} · ` : ""}${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: acento, icono: SP_JSX.jsx(FaPalette, { size: 17 }), anim: "pop", titulo: "Color", detalle: acentoInfo.nombre, onClick: () => ciclar("color") }) })] }) }), SP_JSX.jsx(Seccion, { titulo: "Avanzado", color: C.ambar, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", color: C.rojo, onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", color: C.gris, onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {
