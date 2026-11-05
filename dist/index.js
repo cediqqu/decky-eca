@@ -683,11 +683,15 @@ function Content() {
                     ? "Primer uso"
                     : !est.hook
                         ? "Hook desactivado"
-                        : "Actualizar", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaDownload, { size: 14 }), texto: !est.instalado
+                        : est.reparar
+                            ? "Reparar"
+                            : "Actualizar", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaDownload, { size: 14 }), texto: !est.instalado
                             ? "Instalar scripts"
                             : !est.hook
                                 ? "Reactivar hook"
-                                : "Actualizar scripts", onClick: instalar }) }) })) : null, est.esde === false ? (SP_JSX.jsx(DFL.PanelSection, { children: est.esde === false ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", children: "ES-DE: activa \u00ABOther settings \u2192 Enable custom event scripts\u00BB. Sin eso no se aplica al lanzar el juego." }) })) : null })) : null, SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                : est.reparar
+                                    ? "Reparar instalación"
+                                    : "Actualizar scripts", onClick: instalar }) }) })) : null, est.esde === false ? (SP_JSX.jsx(DFL.PanelSection, { children: est.esde === false ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", children: "ES-DE: activa \u00ABOther settings \u2192 Enable custom event scripts\u00BB. Sin eso no se aplica al lanzar el juego." }) })) : null })) : null, SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                             display: "flex",
                             alignItems: "center",
                             gap: "10px",

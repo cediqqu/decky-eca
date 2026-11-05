@@ -605,7 +605,12 @@ eden_controller/
 ├── README.md
 ├── instalar.sh                        # instala en $HOME
 ├── eden-diagnostico.sh                # solo lectura: diagnóstico
-├── eden-autoconfig.sh                 # script principal
+├── eden-autoconfig.sh                 # despachador (--sistema)
+├── eden-nucleo.sh                     # rutas, .conf y preferencias comunes
+├── eden-driver-yuzu.sh                # Eden / Switch (qt-config.ini)
+├── eden-driver-dolphin.sh             # Dolphin / GC y Wii
+├── eden-driver-cemu.sh                # Cemu / Wii U (controllerN.xml)
+├── eden-plantilla-cemu.xml            # plantilla de emergencia para Cemu
 ├── eden-mandos-sdl.sh                 # lista los mandos como los ve Eden (SDL)
 ├── eden-autoconfig.conf.example       # ajustes (copiar como .conf)
 └── es-de-hooks/
@@ -661,3 +666,42 @@ En la Ally, tras instalar:
   nunca se borra ninguna.
 * Bloqueo con `flock` para que dos lanzamientos simultáneos no se pisen.
 * Nunca escribe fuera de `$HOME`.
+
+---
+
+## 11. Dolphin (GameCube/Wii) y Cemu (Wii U)
+
+El mismo script sirve para los tres emuladores; se elige con `--sistema`
+(sin él, Eden):
+
+```
+eden-autoconfig.sh --sistema gc     # Dolphin: GCPadNew.ini / WiimoteNew.ini
+eden-autoconfig.sh --sistema wii    # lo mismo (Wii)
+eden-autoconfig.sh --sistema wiiu   # Cemu: controllerProfiles/controllerN.xml
+```
+
+El hook de ES-DE ya lo hace solo: `switch` → Eden, `gc`/`wii` → Dolphin,
+`wiiu` → Cemu.
+
+**Dolphin** solo reescribe la línea `Device = SDL/<indice>/<nombre>` de cada
+puerto. EmuDeck ya deja los botones configurados.
+
+**Cemu** solo cambia el dispositivo de cada mando. El `uuid` que guarda Cemu es
+`<n>_<guid>` con el CRC **real** (Eden lo pone a cero), por eso el driver pide
+el guid a la SDL del sistema. Se conservan el tipo (GamePad/Pro), el perfil y
+los bindings; las ranuras que sobran quedan en `Disconnected`.
+
+Comandos útiles:
+
+```bash
+eden-autoconfig.sh --sistema wiiu --status        # qué hay ahora
+eden-autoconfig.sh --sistema wiiu --dry-run       # qué haría, sin escribir
+eden-autoconfig.sh --sistema wiiu --diagnostico   # carpetas y ficheros de Cemu
+eden-autoconfig.sh --sistema wiiu --restore       # deshacer
+```
+
+Si Cemu está en una carpeta rara, se fija en el `.conf`:
+
+```
+CEMU_DIR=/ruta/a/Cemu
+```

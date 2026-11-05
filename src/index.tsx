@@ -83,6 +83,8 @@ type Estado = {
   version: string;
   hash_instalado: string;
   desactualizado: boolean;
+  reparar: boolean;
+  faltan: string[];
   aviso: string;
 };
 
@@ -970,7 +972,9 @@ function Content() {
               ? "Primer uso"
               : !est.hook
                 ? "Hook desactivado"
-                : "Actualizar"
+                : est.reparar
+                  ? "Reparar"
+                  : "Actualizar"
           }
         >
           <PanelSectionRow>
@@ -981,7 +985,9 @@ function Content() {
                   ? "Instalar scripts"
                   : !est.hook
                     ? "Reactivar hook"
-                    : "Actualizar scripts"
+                    : est.reparar
+                      ? "Reparar instalación"
+                      : "Actualizar scripts"
               }
               onClick={instalar}
             />

@@ -1,7 +1,8 @@
 # AGENTS.md — E.C.A (Eden Control Autoconfig)
 
-Plugin de Decky para autoconfigurar los mandos de Eden desde el menú rápido de
-Steam. El proyecto de scripts vive ahora **dentro** de esta carpeta.
+Plugin de Decky para autoconfigurar los mandos de Eden (Switch), Dolphin
+(GameCube/Wii) y Cemu (Wii U) desde el menú rápido de Steam. El proyecto de
+scripts vive ahora **dentro** de esta carpeta.
 
 ## Estructura
 

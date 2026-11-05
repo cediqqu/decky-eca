@@ -37,6 +37,8 @@ FICHEROS=(
     eden-nucleo.sh
     eden-driver-yuzu.sh
     eden-driver-dolphin.sh
+    eden-driver-cemu.sh
+    eden-plantilla-cemu.xml
     eden-mandos-sdl.sh
     eden-diagnostico.sh
     eden-autoconfig.conf.example

@@ -13,7 +13,7 @@
 #     $3 = nombre del sistema            (para Switch: "switch")
 #     $4 = nombre completo del sistema   ("Nintendo Switch")
 #
-#  Actua en Switch (Eden), GameCube y Wii (Dolphin) y NUNCA debe impedir
+#  Actua en Switch (Eden), GameCube/Wii (Dolphin) y Wii U (Cemu) y NUNCA debe impedir
 #  que el juego arranque: siempre termina con exit 0.
 #
 #  Instalacion: copiar a ~/ES-DE/scripts/game-start/10-eden-autoconfig.sh
@@ -30,20 +30,23 @@ SISTEMA_LARGO="${4:-}"
 #   switch -> Eden (qt-config.ini)
 #   gc     -> Dolphin (GCPadNew.ini)
 #   wii    -> Dolphin (WiimoteNew.ini)
+#   wiiu   -> Cemu (controllerN.xml)
 ECA_SISTEMA=""
 if [ -n "$SISTEMA" ]; then
     case "$SISTEMA" in
         switch|Switch|SWITCH|nsw|NSW) ECA_SISTEMA="switch" ;;
         gc|GC|gamecube|GameCube)      ECA_SISTEMA="gc" ;;
         wii|Wii|WII)                  ECA_SISTEMA="wii" ;;
+        wiiu|WiiU|WIIU|Wiiu|wii-u)    ECA_SISTEMA="wiiu" ;;
     esac
 else
     # Por si alguna version no pasara el nombre del sistema: miramos el
     # nombre largo y la ruta del juego.
     case "$SISTEMA_LARGO $JUEGO" in
-        *[Ss]witch*)          ECA_SISTEMA="switch" ;;
-        *[Gg]ame[Cc]ube*)     ECA_SISTEMA="gc" ;;
-        *[Ww]ii*)             ECA_SISTEMA="wii" ;;
+        *[Ss]witch*)                  ECA_SISTEMA="switch" ;;
+        *[Gg]ame[Cc]ube*)             ECA_SISTEMA="gc" ;;
+        *[Ww]ii[[:space:]]*[Uu]*)     ECA_SISTEMA="wiiu" ;;
+        *[Ww]ii*)                     ECA_SISTEMA="wii" ;;
     esac
 fi
 [ -n "$ECA_SISTEMA" ] || exit 0

@@ -127,10 +127,12 @@ jugadores sobrantes quedan `connected=false`.
 | `eden-nucleo.sh` | Piezas compartidas: rutas, `.conf`, preferencias comunes |
 | `eden-driver-yuzu.sh` | Eden y sus fork: `qt-config.ini` (todo el flujo anterior) |
 | `eden-driver-dolphin.sh` | Dolphin (GC/Wii): reescribe `Device` en `GCPadNew.ini`/`WiimoteNew.ini` |
+| `eden-driver-cemu.sh` | Cemu (Wii U): fija el dispositivo (uuid/display_name) en `controllerN.xml` |
+| `eden-plantilla-cemu.xml` | Plantilla de emergencia (Wii U Pro Controller) si no hay `Deck-PN.xml` |
 | `eden-mandos-sdl.sh` | Interroga a libSDL3 (python + ctypes); lista lo que ve Eden |
 | `eden-diagnostico.sh` | Solo lectura; volcado para que el usuario lo pegue |
 | `instalar.sh` | Copia a `~/eden-autoconfig`, repone el hook y verifica SDL |
-| `es-de-hooks/10-eden-autoconfig.sh` | Hook `game-start`: `switch` → Eden, `gc`/`wii` → Dolphin |
+| `es-de-hooks/10-eden-autoconfig.sh` | Hook `game-start`: `switch` → Eden, `gc`/`wii` → Dolphin, `wiiu` → Cemu |
 | `eden-autoconfig.conf.example` | Variables; el `.conf` instalado no se sobreescribe |
 | `README.md` | Guía de usuario; fuente de verdad de los pasos en la consola |
 
@@ -151,6 +153,13 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
   `NOMBRE|GUID|PUERTO|TIPO|ES_GAMEPAD|NOMBRE_SDL|SERIE|INDICE_SDL`.
   `PUERTO` es el "n-ésimo con ese guid" (Eden); `INDICE_SDL` es el índice global
   de SDL, que es lo que usa Dolphin (`SDL/<indice>/<nombre>`).
+- Dialecto del GUID (`SDL_GUID_MODO`): Eden guarda el CRC de los bytes 2-3 a
+  cero; Cemu lo guarda **real**. Por eso el driver de Cemu llama al ayudante con
+  `SDL_FUENTE=sistema SDL_GUID_MODO=cemu` (SDL del sistema sin normalizar y
+  `PUERTO` contado solo entre gamepads, como hace Cemu).
+- Cemu identifica el mando por `uuid = <puerto>_<guid>`; `display_name`,
+  `<profile>` y `<type>` no intervienen en la búsqueda. El driver solo cambia el
+  dispositivo: conserva tipo, perfil, bindings y las entradas no-SDL (DSU).
 - Si cambias `eden-mandos-sdl.sh` de forma incompatible, actualiza la guarda de
   `instalar.sh` (busca la marca `raices_de_pid`) o la instalación abortará.
 - Antes de entregar: `bash -n` de todo + una pasada con `EDEN_FAKE_SDL` en los

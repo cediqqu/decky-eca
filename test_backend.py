@@ -93,6 +93,23 @@ async def main():
     check("sin SDL avisa y no rompe", "SDL" in est["aviso"] or est["mandos"] == [],
           est["aviso"])
 
+    # si falta un script nuevo (instalacion antigua) hay que ofrecer reparar
+    falta = os.path.join(base, "eden-driver-cemu.sh")
+    with open(falta, "w", encoding="utf-8") as fh:
+        fh.write("#!/bin/bash\n")
+    est = await mod.Plugin().estado()
+    check("hash distinto -> desactualizado", est["desactualizado"] is True)
+    check("no es reparacion (esta todo)", est["reparar"] is False, est.get("faltan"))
+    os.remove(falta)
+    est = await mod.Plugin().estado()
+    check("falta fichero -> desactualizado", est["desactualizado"] is True)
+    check("falta fichero -> reparar", est["reparar"] is True)
+    check("dice cual falta", "eden-driver-cemu.sh" in est["faltan"], est.get("faltan"))
+    r = await mod.Plugin().instalar_scripts()
+    check("reinstalar arregla", r["ok"] is True, r["salida"])
+    est = await mod.Plugin().estado()
+    check("ya no falta nada", est["reparar"] is False and est["desactualizado"] is False)
+
     # ------------------------------------------------------------------ 3
     print("3) deteccion simulada (EDEN_FAKE_SDL)")
     fake = os.path.join(tmp, "sdl.txt")

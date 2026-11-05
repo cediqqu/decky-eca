@@ -24,8 +24,13 @@
 #     3) la del sistema ("libSDL3.so.0" / "libSDL3.so")  <-- lo normal
 #
 #  OJO: la SDL que lleva Eden dentro calcula el CRC del GUID a 0; la del sistema
-#  mete otro. Por eso con la del sistema se normaliza el CRC (SDL_CRC_CERO=si),
-#  que deja los GUIDs exactamente como los espera Eden.
+#  mete el de verdad. Por eso con la del sistema se normaliza el CRC
+#  (SDL_CRC_CERO=si), que deja los GUIDs exactamente como los espera Eden.
+#
+#  CEMU: guarda el GUID con el CRC real. Para el se usa:
+#     SDL_FUENTE=sistema SDL_GUID_MODO=cemu
+#  (la SDL del sistema sin normalizar; ademas el PUERTO se cuenta solo entre
+#   gamepads, que es como lo cuenta Cemu).
 #
 #  Uso:
 #     bash eden-mandos-sdl.sh              # lista los mandos
@@ -208,6 +213,8 @@ def s(x):
 # el GUID sea EXACTAMENTE el que Eden espera (comprobado con sus guids reales:
 # 050000004c05... y 03000000de28...). El resto de bytes ya coincide.
 crc_cero = os.environ.get("SDL_CRC_CERO", "0").lower() in ("1", "si", "sí", "yes", "true")
+# Cemu cuenta el "n-esimo con este guid" solo entre gamepads (SDL_GetGamepads).
+solo_gp = os.environ.get("SDL_PUERTO_GAMEPADS", "0").lower() in ("1", "si", "sí", "yes", "true")
 
 puertos = {}   # guid -> cuantos llevamos (asi calcula Eden el "port")
 for i in range(count.value):
@@ -248,7 +255,8 @@ for i in range(count.value):
         except Exception:
             serial = ""
         p = puertos.get(guid, 0)
-        puertos[guid] = p + 1
+        if es_gp or not solo_gp:
+            puertos[guid] = p + 1
         # 8.o campo: indice global de SDL (Dolphin usa "SDL/<indice>/<nombre>")
         out = [nombre, guid, str(p), str(tipo), "1" if es_gp else "0",
                nombre_sdl, serial, str(i)]
@@ -304,11 +312,16 @@ ejecutar_dump() { # $1 = SDL_LIB, $2 = dir (opcional), $3 = crc_cero (1/0)
         si|sí|1|yes|true) crc=1 ;;
         no|0|false)       crc=0 ;;
     esac
+    # Cemu cuenta el PUERTO solo entre gamepads (ver cabecera)
+    local gp="${SDL_PUERTO_GAMEPADS:-0}"
+    [ "${SDL_GUID_MODO:-eden}" = "cemu" ] && gp=1
     if [ -n "${2:-}" ]; then
         LD_LIBRARY_PATH="$2${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-        SDL_LIB="$1" SDL_CRC_CERO="$crc" "$PY" "$DUMP_PY"
+        SDL_LIB="$1" SDL_CRC_CERO="$crc" SDL_PUERTO_GAMEPADS="$gp" \
+        "$PY" "$DUMP_PY"
     else
-        SDL_LIB="$1" SDL_CRC_CERO="$crc" "$PY" "$DUMP_PY"
+        SDL_LIB="$1" SDL_CRC_CERO="$crc" SDL_PUERTO_GAMEPADS="$gp" \
+        "$PY" "$DUMP_PY"
     fi
 }
 
@@ -443,15 +456,19 @@ copiar_del_montaje() {
 
 
 lista_candidatos() {
+    local fuente="${SDL_FUENTE:-auto}"
     # 1) forzada por el usuario
     [ -n "$EDEN_SDL_LIB" ] && printf '%s|%s\n' "$EDEN_SDL_LIB" "$EDEN_SDL_LIB_DIR"
-    # 2) copia del AppImage de Eden (la buena: mismos guids que Eden)
+    # 2) copia del AppImage de Eden (mismos guids que Eden) salvo que se pida
+    #    expresamente la del sistema
     local ya
-    for ya in "$SDL_DIR"/libSDL3.so*; do
-        [ -f "$ya" ] && printf '%s|%s\n' "$(basename -- "$ya")" "$SDL_DIR"
-    done
-    # 3) la del sistema (respaldo; ojo: puede calcular guids distintos)
-    printf 'libSDL3.so.0|\nlibSDL3.so|\n'
+    if [ "$fuente" != "sistema" ]; then
+        for ya in "$SDL_DIR"/libSDL3.so*; do
+            [ -f "$ya" ] && printf '%s|%s\n' "$(basename -- "$ya")" "$SDL_DIR"
+        done
+    fi
+    # 3) la del sistema (guids sin normalizar; la que usa Cemu)
+    [ "$fuente" != "appimage" ] && printf 'libSDL3.so.0|\nlibSDL3.so|\n'
     return 0
 }
 
@@ -462,12 +479,16 @@ intentar_candidatos() {
         log "probando libSDL3: ${lib}${dir:+ (dir $dir)}"
         # la del AppImage de Eden -> guids exactos; la del sistema -> CRC a cero
         if [ "$dir" = "$SDL_DIR" ]; then crc=0; else crc=1; fi
+        # Cemu guarda el GUID con el CRC real: no se normaliza nunca
+        [ "${SDL_GUID_MODO:-eden}" = "cemu" ] && crc=0
         out="$(ejecutar_dump "$lib" "$dir" "$crc" 2>"$SDL_DIR/.err")"
         rc=$?
         if [ "$rc" -eq 0 ]; then
             printf '%s|%s\n' "$lib" "$dir" >"$SDL_DIR/lib.sel"
             local origen
             if [ "$dir" = "$SDL_DIR" ]; then origen="AppImage de Eden"
+            elif [ -z "$dir" ] && [ "${SDL_GUID_MODO:-eden}" = "cemu" ]; then
+                origen="sistema (guid real, formato Cemu)"
             elif [ -z "$dir" ]; then origen="sistema (CRC normalizado a 0 = guids de Eden)"
             else origen="otra ($dir)"; fi
             printf '%s\n' "$out"

@@ -633,10 +633,26 @@ def _reporte_ds5(bus, motor, seq=None):
     return cuerpo + crc.to_bytes(4, "little")
 
 
+FICHEROS_SCRIPTS = (
+    SCRIPT, MANDOS, "eden-diagnostico.sh", "eden-nucleo.sh",
+    "eden-driver-yuzu.sh", "eden-driver-dolphin.sh",
+    "eden-driver-cemu.sh", "eden-plantilla-cemu.xml",
+)
+
+
+def _faltan_scripts(carpeta):
+    """Nombres de los scripts que faltan en una instalacion."""
+    faltan = []
+    for nombre in FICHEROS_SCRIPTS:
+        ruta = os.path.join(carpeta, nombre)
+        if not (os.path.isfile(ruta) and os.access(ruta, os.R_OK)):
+            faltan.append(nombre)
+    return faltan
+
+
 def _hash_scripts(carpeta):
     h = hashlib.sha256()
-    for nombre in (SCRIPT, MANDOS, "eden-diagnostico.sh", "eden-nucleo.sh",
-                   "eden-driver-yuzu.sh", "eden-driver-dolphin.sh"):
+    for nombre in FICHEROS_SCRIPTS:
         ruta = os.path.join(carpeta, nombre)
         try:
             with open(ruta, "rb") as fh:
@@ -860,6 +876,7 @@ class Plugin:
 
         has_inst = _hash_scripts(_base())
         has_bundle = _hash_scripts(SCRIPTS_DIR)
+        faltan = _faltan_scripts(_base()) if ok else []
 
         return {
             "ok": True,
@@ -877,7 +894,11 @@ class Plugin:
             "esde": _esde_eventos(),
             "version": _version_bundle(),
             "hash_instalado": has_inst,
-            "desactualizado": bool(ok and has_bundle and has_inst and has_inst != has_bundle),
+            "faltan": faltan,
+            "reparar": bool(ok and faltan),
+            "desactualizado": bool(
+                ok and (faltan or (has_bundle and has_inst and has_inst != has_bundle))
+            ),
             "aviso": aviso,
         }
 

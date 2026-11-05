@@ -5,16 +5,15 @@
 #  Elige el driver segun el sistema del juego y le pasa todos los argumentos.
 #
 #  Uso:
-#     eden-autoconfig.sh [--sistema switch|gc|wii] [opciones del driver]
+#     eden-autoconfig.sh [--sistema switch|gc|wii|wiiu] [opciones del driver]
 #
 #  Sin --sistema se usa "switch" (Eden), asi que el plugin y el hook de ES-DE
 #  siguen funcionando igual que antes de existir el despachador.
 #
 #  Drivers:
-#     switch -> eden-driver-yuzu.sh     (Eden y sus fork: qt-config.ini)
-#     gc|wii -> eden-driver-dolphin.sh  (GCPadNew.ini / WiimoteNew.ini)
-#
-#  Cemu (wiiu) todavia no esta soportado.
+#     switch  -> eden-driver-yuzu.sh     (Eden y sus fork: qt-config.ini)
+#     gc|wii  -> eden-driver-dolphin.sh  (GCPadNew.ini / WiimoteNew.ini)
+#     wiiu    -> eden-driver-cemu.sh     (controllerN.xml)
 # =============================================================================
 
 set -u
@@ -43,13 +42,10 @@ done
 case "${SISTEMA,,}" in
     switch|nsw|yuzu|eden)     DRIVER="yuzu" ;;
     gc|wii|gamecube|dolphin)  DRIVER="dolphin" ;;
-    wiiu|cemu)
-        echo "E.C.A: Cemu todavia no esta soportado (en camino)." >&2
-        exit 1
-        ;;
+    wiiu|cemu|wii-u)          DRIVER="cemu" ;;
     *)
         echo "E.C.A: sistema no soportado: $SISTEMA" >&2
-        echo "  validos: switch | gc | wii" >&2
+        echo "  validos: switch | gc | wii | wiiu" >&2
         exit 1
         ;;
 esac
