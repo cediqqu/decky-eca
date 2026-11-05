@@ -635,7 +635,8 @@ def _reporte_ds5(bus, motor, seq=None):
 
 def _hash_scripts(carpeta):
     h = hashlib.sha256()
-    for nombre in (SCRIPT, MANDOS, "eden-diagnostico.sh"):
+    for nombre in (SCRIPT, MANDOS, "eden-diagnostico.sh", "eden-nucleo.sh",
+                   "eden-driver-yuzu.sh", "eden-driver-dolphin.sh"):
         ruta = os.path.join(carpeta, nombre)
         try:
             with open(ruta, "rb") as fh:

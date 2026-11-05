@@ -36,7 +36,9 @@
 #     bash eden-mandos-sdl.sh --limpiar    # borra la cache de ~/eden-autoconfig/sdl
 #
 #  Salida (una linea por mando, separada por "|"):
-#     NOMBRE_EDEN|GUID|PUERTO|TIPO|ES_GAMEPAD|NOMBRE_SDL
+#     NOMBRE_EDEN|GUID|PUERTO|TIPO|ES_GAMEPAD|NOMBRE_SDL|SERIE|INDICE_SDL
+#     (PUERTO = "n-esimo mando con ese GUID", lo que guarda Eden;
+#      INDICE_SDL = indice global de SDL, lo que usa Dolphin: "SDL/<indice>/...")
 #  La primera linea empieza por "#" e indica la lib y su version.
 #  NO modifica nada del sistema.
 # =============================================================================
@@ -247,7 +249,9 @@ for i in range(count.value):
             serial = ""
         p = puertos.get(guid, 0)
         puertos[guid] = p + 1
-        out = [nombre, guid, str(p), str(tipo), "1" if es_gp else "0", nombre_sdl, serial]
+        # 8.o campo: indice global de SDL (Dolphin usa "SDL/<indice>/<nombre>")
+        out = [nombre, guid, str(p), str(tipo), "1" if es_gp else "0",
+               nombre_sdl, serial, str(i)]
         sys.stdout.write("|".join(x.replace("|", " ").replace("\n", " ") for x in out) + "\n")
     except Exception as e:
         sys.stderr.write("aviso: fallo leyendo el mando %d: %s\n" % (i, e))
@@ -488,6 +492,13 @@ if [ "$MODO_COPIAR" -eq 1 ]; then
         exit 1
     fi
     exit 1
+fi
+
+# Gancho de pruebas: mismo formato que la salida real (sin libSDL3).
+if [ -n "${EDEN_FAKE_SDL:-}" ] && [ -r "$EDEN_FAKE_SDL" ]; then
+    echo "#lib falsa (EDEN_FAKE_SDL)"
+    cat "$EDEN_FAKE_SDL"
+    exit 0
 fi
 
 log "python: $PY"

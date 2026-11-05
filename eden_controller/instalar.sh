@@ -31,7 +31,8 @@ say ""
 
 # --- comprobaciones de origen ------------------------------------------------
 faltan=0
-for f in eden-autoconfig.sh eden-diagnostico.sh eden-mandos-sdl.sh \
+for f in eden-autoconfig.sh eden-nucleo.sh eden-driver-yuzu.sh \
+         eden-driver-dolphin.sh eden-diagnostico.sh eden-mandos-sdl.sh \
          eden-autoconfig.conf.example es-de-hooks/10-eden-autoconfig.sh; do
     if [ ! -r "$AQUI/$f" ]; then say "FALTA: $AQUI/$f"; faltan=1; fi
 done
@@ -50,9 +51,12 @@ fi
 say "1) $DEST_CFG"
 haz "mkdir -p '$DEST_CFG' '$DEST_CFG/templates' '$DEST_CFG/backups'"
 haz "cp -f '$AQUI/eden-autoconfig.sh' '$DEST_CFG/eden-autoconfig.sh'"
+haz "cp -f '$AQUI/eden-nucleo.sh' '$DEST_CFG/eden-nucleo.sh'"
+haz "cp -f '$AQUI/eden-driver-yuzu.sh' '$DEST_CFG/eden-driver-yuzu.sh'"
+haz "cp -f '$AQUI/eden-driver-dolphin.sh' '$DEST_CFG/eden-driver-dolphin.sh'"
 haz "cp -f '$AQUI/eden-diagnostico.sh' '$DEST_CFG/eden-diagnostico.sh'"
 haz "cp -f '$AQUI/eden-mandos-sdl.sh' '$DEST_CFG/eden-mandos-sdl.sh'"
-haz "chmod 755 '$DEST_CFG/eden-autoconfig.sh' '$DEST_CFG/eden-diagnostico.sh' '$DEST_CFG/eden-mandos-sdl.sh'"
+haz "chmod 755 '$DEST_CFG/eden-autoconfig.sh' '$DEST_CFG/eden-nucleo.sh' '$DEST_CFG/eden-driver-yuzu.sh' '$DEST_CFG/eden-driver-dolphin.sh' '$DEST_CFG/eden-diagnostico.sh' '$DEST_CFG/eden-mandos-sdl.sh'"
 
 if [ -e "$DEST_CFG/eden-autoconfig.conf" ]; then
     say "   (ya existe $DEST_CFG/eden-autoconfig.conf: no lo toco)"

@@ -13,7 +13,7 @@
 #     $3 = nombre del sistema            (para Switch: "switch")
 #     $4 = nombre completo del sistema   ("Nintendo Switch")
 #
-#  Este script solo actua cuando el sistema es Switch y NUNCA debe impedir
+#  Actua en Switch (Eden), GameCube y Wii (Dolphin) y NUNCA debe impedir
 #  que el juego arranque: siempre termina con exit 0.
 #
 #  Instalacion: copiar a ~/ES-DE/scripts/game-start/10-eden-autoconfig.sh
@@ -26,20 +26,27 @@ SISTEMA="${3:-}"
 JUEGO="${1:-}"
 SISTEMA_LARGO="${4:-}"
 
-# --- ¿es un juego de Switch? -------------------------------------------------
-es_switch=0
+# --- ¿sistema soportado? -----------------------------------------------------
+#   switch -> Eden (qt-config.ini)
+#   gc     -> Dolphin (GCPadNew.ini)
+#   wii    -> Dolphin (WiimoteNew.ini)
+ECA_SISTEMA=""
 if [ -n "$SISTEMA" ]; then
     case "$SISTEMA" in
-        switch|Switch|SWITCH|nsw|NSW) es_switch=1 ;;
+        switch|Switch|SWITCH|nsw|NSW) ECA_SISTEMA="switch" ;;
+        gc|GC|gamecube|GameCube)      ECA_SISTEMA="gc" ;;
+        wii|Wii|WII)                  ECA_SISTEMA="wii" ;;
     esac
 else
     # Por si alguna version no pasara el nombre del sistema: miramos el
     # nombre largo y la ruta del juego.
     case "$SISTEMA_LARGO $JUEGO" in
-        *[Ss]witch*) es_switch=1 ;;
+        *[Ss]witch*)          ECA_SISTEMA="switch" ;;
+        *[Gg]ame[Cc]ube*)     ECA_SISTEMA="gc" ;;
+        *[Ww]ii*)             ECA_SISTEMA="wii" ;;
     esac
 fi
-[ "$es_switch" -eq 1 ] || exit 0
+[ -n "$ECA_SISTEMA" ] || exit 0
 
 # --- localizar el script principal ------------------------------------------
 SCRIPT="${EDEN_AUTOCONFIG_BIN:-$HOME/eden-autoconfig/eden-autoconfig.sh}"
@@ -50,6 +57,6 @@ fi
 
 # --quiet: solo errores por pantalla; el resumen queda en
 # ~/eden-autoconfig/log.txt y una linea en stderr (visible en es_log.txt).
-bash "$SCRIPT" --quiet || true
+bash "$SCRIPT" --quiet --sistema "$ECA_SISTEMA" || true
 
 exit 0

@@ -123,15 +123,18 @@ jugadores sobrantes quedan `connected=false`.
 
 | Fichero | Papel |
 |---|---|
-| `eden-autoconfig.sh` | Flujo completo: detección SDL/`/sys`, plan, escritura, backups, CLI |
+| `eden-autoconfig.sh` | **Despachador**: elige driver por `--sistema` y le pasa los argumentos |
+| `eden-nucleo.sh` | Piezas compartidas: rutas, `.conf`, preferencias comunes |
+| `eden-driver-yuzu.sh` | Eden y sus fork: `qt-config.ini` (todo el flujo anterior) |
+| `eden-driver-dolphin.sh` | Dolphin (GC/Wii): reescribe `Device` en `GCPadNew.ini`/`WiimoteNew.ini` |
 | `eden-mandos-sdl.sh` | Interroga a libSDL3 (python + ctypes); lista lo que ve Eden |
 | `eden-diagnostico.sh` | Solo lectura; volcado para que el usuario lo pegue |
 | `instalar.sh` | Copia a `~/eden-autoconfig`, repone el hook y verifica SDL |
-| `es-de-hooks/10-eden-autoconfig.sh` | Hook `game-start` (solo sistema `switch`) |
+| `es-de-hooks/10-eden-autoconfig.sh` | Hook `game-start`: `switch` → Eden, `gc`/`wii` → Dolphin |
 | `eden-autoconfig.conf.example` | Variables; el `.conf` instalado no se sobreescribe |
 | `README.md` | Guía de usuario; fuente de verdad de los pasos en la consola |
 
-Orden de llamada: `main` → `localizar_qconfig` → `detectar_mandos`
+Orden de llamada: despachador (según `--sistema`) → driver → `main` → `localizar_qconfig` → `detectar_mandos`
 (`cargar_mandos_sdl`/`detectar_mandos_sdl`, con la ruta `/sys` como respaldo) →
 `planificar` (`planificar_sdl`) → `montar_fichero` (`render_player`) →
 `validar_salida` → backup → `escribir_atomico`.
@@ -144,6 +147,10 @@ Orden de llamada: `main` → `localizar_qconfig` → `detectar_mandos`
   4º campo es opcional y si falta se usan `GUID_DUALSENSE`/`GUID_INTEGRADO`.
 - En la salida de `eden-mandos-sdl.sh`, las líneas que empiezan por `#` son
   informativas: los parsers **deben saltarlas**.
+- Formato de cada mando (8 campos desde 2026-11):
+  `NOMBRE|GUID|PUERTO|TIPO|ES_GAMEPAD|NOMBRE_SDL|SERIE|INDICE_SDL`.
+  `PUERTO` es el "n-ésimo con ese guid" (Eden); `INDICE_SDL` es el índice global
+  de SDL, que es lo que usa Dolphin (`SDL/<indice>/<nombre>`).
 - Si cambias `eden-mandos-sdl.sh` de forma incompatible, actualiza la guarda de
   `instalar.sh` (busca la marca `raices_de_pid`) o la instalación abortará.
 - Antes de entregar: `bash -n` de todo + una pasada con `EDEN_FAKE_SDL` en los
