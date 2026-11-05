@@ -225,6 +225,10 @@ const ESTILOS = `
 /* capa de foco de Steam: mas suave y dentro de la tarjeta */
 .ede-zona .gpfocus { background: rgba(255,255,255,0.05) !important; border-radius: 14px !important; }
 .ede-zona .gpfocus .ede-tarjeta { outline: 1px solid rgba(10,185,230,0.9); outline-offset: -1px; }
+/* el icono de las tarjetas "late" al resaltar */
+.ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
+.ede-celda:hover .ede-icono-tile,
+.ede-zona .gpfocus .ede-icono-tile { transform: scale(1.16); filter: brightness(1.2); }
 .ede-aparecer { animation: ede-aparecer 150ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .ede-estrella, .ede-aparecer { animation: none; }
@@ -468,6 +472,29 @@ function BotonAccion(props) {
                 border: "1px solid rgba(128,128,128,0.18)",
             }, children: [SP_JSX.jsx(CirculoIcono, { color: C.azul, lado: 22, children: props.icono }), SP_JSX.jsx("span", { children: props.texto })] }) }));
 }
+// --- icono de la maquina integrada -----------------------------------------
+function IconoPortatil(props) {
+    const lado = props.size ?? 17;
+    return (SP_JSX.jsxs("svg", { width: lado, height: lado, viewBox: "0 0 24 24", fill: "currentColor", "aria-hidden": "true", children: [SP_JSX.jsx("path", { d: "M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-1.5a2 2 0 0 1-1.7-.9l-.8-1.2a1.2 1.2 0 0 0-2 0l-.8 1.2a2 2 0 0 1-1.7.9H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 1.8A2.2 2.2 0 0 0 4.8 7v10A2.2 2.2 0 0 0 7 19.2h.8l.8-1.2a3 3 0 0 1 4.8 0l.8 1.2H17a2.2 2.2 0 0 0 2.2-2.2V7A2.2 2.2 0 0 0 17 4.8H7Z" }), SP_JSX.jsx("rect", { x: "6.6", y: "6.4", width: "10.8", height: "6.8", rx: "1.2" }), SP_JSX.jsx("circle", { cx: "8.1", cy: "16.3", r: "1.05" }), SP_JSX.jsx("circle", { cx: "15.9", cy: "16.3", r: "1.05" })] }));
+}
+function IconoMaquina(props) {
+    const n = (props.nombre || "").toLowerCase();
+    const lado = props.size ?? 17;
+    if (n.includes("steam deck") || n.includes("deck controller")) {
+        return SP_JSX.jsx(FaSteam, { size: lado });
+    }
+    if (n.includes("xbox"))
+        return SP_JSX.jsx(FaXbox, { size: lado });
+    if (n.includes("rog") ||
+        n.includes("ally") ||
+        n.includes("asus") ||
+        n.includes("msi") ||
+        n.includes("claw") ||
+        n.includes("legion")) {
+        return SP_JSX.jsx(IconoPortatil, { size: lado });
+    }
+    return SP_JSX.jsx(FaMicrochip, { size: lado });
+}
 // --- tarjeta de accion (cuadrada, como las de los mandos) ------------------
 function TarjetaAccion(props) {
     const color = props.color ?? C.azul;
@@ -489,7 +516,7 @@ function TarjetaAccion(props) {
                     gap: "5px",
                     padding: "10px 6px",
                     width: "100%",
-                }, children: [SP_JSX.jsx(CirculoIcono, { color: color, lado: 34, children: props.icono }), SP_JSX.jsx("div", { style: { fontSize: "0.68em", fontWeight: 700, lineHeight: 1.15 }, children: props.titulo }), props.detalle ? (SP_JSX.jsx("div", { style: { fontSize: "0.62em", opacity: 0.7, lineHeight: 1.15 }, children: props.detalle })) : null] }) }) }));
+                }, children: [SP_JSX.jsx("span", { className: "ede-icono-tile", children: SP_JSX.jsx(CirculoIcono, { color: color, lado: 34, children: props.icono }) }), SP_JSX.jsx("div", { style: { fontSize: "0.68em", fontWeight: 700, lineHeight: 1.15 }, children: props.titulo }), props.detalle ? (SP_JSX.jsx("div", { style: { fontSize: "0.62em", opacity: 0.7, lineHeight: 1.15 }, children: props.detalle })) : null] }) }) }));
 }
 // --- rejilla de 2 columnas -------------------------------------------------
 function Rejilla(props) {
@@ -555,6 +582,47 @@ function VentanaTexto(props) {
 function abrirVentana(titulo, texto) {
     const cierre = { f: () => { } };
     const res = DFL.showModal(SP_JSX.jsx(VentanaTexto, { titulo: titulo, texto: texto, onCerrar: () => cierre.f() }));
+    cierre.f = res.Close;
+}
+// ---------------------------------------------------------------------------
+//  Ventana de asignacion (Cemu / Dolphin)
+// ---------------------------------------------------------------------------
+function VentanaAsignacion(props) {
+    const [planes, setPlanes] = SP_REACT.useState(props.planes);
+    const [ocupado, setOcupado] = SP_REACT.useState(false);
+    const [nota, setNota] = SP_REACT.useState("");
+    const comprobar = async () => {
+        if (ocupado)
+            return;
+        setOcupado(true);
+        setNota("Comprobando…");
+        try {
+            const nuevo = await call("comprobar");
+            setPlanes(nuevo.planes);
+            props.onNuevo(nuevo);
+            setNota(nuevo.aviso || "Plan recalculado");
+        }
+        catch (err) {
+            setNota(String(err));
+        }
+        finally {
+            setOcupado(false);
+        }
+    };
+    const bloque = (clave, etiqueta) => {
+        const pl = planes?.[clave];
+        return (SP_JSX.jsxs("div", { style: { marginBottom: "12px" }, children: [SP_JSX.jsx("div", { style: { fontWeight: 700 }, children: etiqueta }), pl ? (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsxs("div", { style: { opacity: 0.6, fontSize: "0.85em" }, children: [pl.modo, " \u00B7 ", pl.fecha, " \u00B7 m\u00E1ximo ", pl.max, " \u00B7", " ", pl.sdl === "ok" ? "SDL ok" : "SDL error"] }), pl.mandos.length === 0 ? (SP_JSX.jsx("div", { style: { color: C.dorado }, children: "Ning\u00FAn mando asignado." })) : (pl.mandos.map((m) => (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs("span", { style: { color: C.azul, fontWeight: 700 }, children: ["M", m.n] }), " ", m.nombre, " ", SP_JSX.jsxs("span", { style: { opacity: 0.5 }, children: ["[", m.clase, "]"] })] }, m.n)))), pl.fuera.map((f) => (SP_JSX.jsxs("div", { style: { color: C.gris, fontSize: "0.92em" }, children: ["fuera: ", f.replace("|", ": ")] }, f))), pl.aviso.map((a) => (SP_JSX.jsx("div", { style: { color: C.dorado, fontSize: "0.92em" }, children: a }, a)))] })) : (SP_JSX.jsx("div", { style: { opacity: 0.6 }, children: "Sin datos todav\u00EDa. Pulsa \u00ABComprobar ahora\u00BB." }))] }, clave));
+    };
+    return (SP_JSX.jsxs(DFL.ModalRoot, { strTitle: "Asignaci\u00F3n", bAllowFullSize: true, onCancel: props.onCerrar, children: [SP_JSX.jsx(DFL.DialogBody, { children: SP_JSX.jsx(DFL.DialogBodyText, { children: SP_JSX.jsxs("div", { style: {
+                            maxHeight: "45vh",
+                            overflowY: "auto",
+                            fontSize: "0.9em",
+                            lineHeight: 1.4,
+                        }, children: [bloque("wiiu", "Cemu (Wii U)"), bloque("dolphin", "Dolphin (GC/Wii)"), nota ? (SP_JSX.jsx("div", { style: { marginTop: "6px", opacity: 0.75, fontSize: "0.9em" }, children: nota })) : null] }) }) }), SP_JSX.jsxs(DFL.DialogFooter, { children: [SP_JSX.jsx(DFL.DialogButton, { disabled: ocupado, onClick: () => void comprobar(), children: ocupado ? "Comprobando…" : "Comprobar ahora" }), SP_JSX.jsx(DFL.DialogButtonPrimary, { onClick: props.onCerrar, children: "Cerrar" })] })] }));
+}
+function abrirAsignacion(planes, onNuevo) {
+    const cierre = { f: () => { } };
+    const res = DFL.showModal(SP_JSX.jsx(VentanaAsignacion, { planes: planes, onCerrar: () => cierre.f(), onNuevo: onNuevo }));
     cierre.f = res.Close;
 }
 // ---------------------------------------------------------------------------
@@ -699,6 +767,7 @@ function Content() {
     }
     const p = est.prefs;
     const cuadricula = est.mandos.length >= 2;
+    const integradoNombre = est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
     // la MAC solo cuando hay mas de un mando del mismo tipo
     const repetidos = (clase) => est.mandos.filter((x) => x.clase === clase).length > 1;
     const textoMandos = (e) => {
@@ -722,14 +791,6 @@ function Content() {
         }
         return trozos.length ? trozos.join(" · ") : "sin datos";
     })();
-    const comprobarPlanes = () => conBloqueo(async () => {
-        const nuevo = await call("comprobar");
-        setEst(nuevo);
-        if (nuevo.aviso)
-            avisar(nuevo.aviso);
-        else
-            avisar("Plan recalculado");
-    });
     const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`;
     return (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx("style", { children: ESTILOS }), !est.instalado || est.desactualizado || !est.hook ? (SP_JSX.jsx(DFL.PanelSection, { title: !est.instalado
                     ? "Primer uso"
@@ -764,18 +825,7 @@ function Content() {
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Asignaci\u00F3n", icono: SP_JSX.jsx(FaFileAlt, { size: 12 }), resumen: resumenPlanes, abierta: Boolean(abiertas.asig), onToggle: () => toggle("asig"), children: [[
-                        ["wiiu", "Cemu (Wii U)"],
-                        ["dolphin", "Dolphin (GC/Wii)"],
-                    ].map(([clave, etiqueta]) => {
-                        const pl = est.planes?.[clave];
-                        return (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
-                                    width: "100%",
-                                    fontSize: "0.8em",
-                                    lineHeight: 1.45,
-                                    padding: "2px 4px",
-                                }, children: [SP_JSX.jsx("div", { style: { fontWeight: 700 }, children: etiqueta }), pl ? (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsxs("div", { style: { opacity: 0.6, fontSize: "0.9em" }, children: [pl.modo, " \u00B7 ", pl.fecha, " \u00B7 m\u00E1ximo ", pl.max, " \u00B7", " ", pl.sdl === "ok" ? "SDL ok" : "SDL error"] }), pl.mandos.length === 0 ? (SP_JSX.jsx("div", { style: { color: C.dorado }, children: "Ning\u00FAn mando asignado." })) : (pl.mandos.map((m) => (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs("span", { style: { color: C.azul, fontWeight: 700 }, children: ["M", m.n] }), " ", m.nombre, " ", SP_JSX.jsxs("span", { style: { opacity: 0.5 }, children: ["[", m.clase, "]"] })] }, m.n)))), pl.fuera.map((f) => (SP_JSX.jsxs("div", { style: { color: C.gris, fontSize: "0.92em" }, children: ["fuera: ", f.replace("|", ": ")] }, f))), pl.aviso.map((a) => (SP_JSX.jsx("div", { style: { color: C.dorado, fontSize: "0.92em" }, children: a }, a)))] })) : (SP_JSX.jsx("div", { style: { opacity: 0.6 }, children: "Sin datos todav\u00EDa. Pulsa \u00ABComprobar ahora\u00BB." }))] }) }, clave));
-                    }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Comprobar ahora", onClick: comprobarPlanes }) })] }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaGamepad, { size: 17 }), titulo: "Mandos", detalle: `${p.JUGADORES_MAX} jugadores`, onClick: () => ciclar("max") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaMicrochip, { size: 17 }), titulo: "Integrado", detalle: `${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) })] }) }), SP_JSX.jsx(Seccion, { titulo: "Avanzado", color: C.gris, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaCheck, { size: 17 }), titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaUndo, { size: 16 }), titulo: "Restaurar", detalle: "Todo", color: C.rojo, onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Ver log", detalle: "log.txt", color: C.gris, onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 14 }), texto: `Asignación · ${resumenPlanes}`, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaGamepad, { size: 17 }), titulo: "Mandos", detalle: `${p.JUGADORES_MAX} jugadores`, onClick: () => ciclar("max") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(IconoMaquina, { nombre: integradoNombre }), titulo: "Integrado", detalle: `${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) })] }) }), SP_JSX.jsx(Seccion, { titulo: "Avanzado", color: C.gris, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaCheck, { size: 17 }), titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaUndo, { size: 16 }), titulo: "Restaurar", detalle: "Todo", color: C.rojo, onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Ver log", detalle: "log.txt", color: C.gris, onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {

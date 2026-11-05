@@ -213,6 +213,10 @@ const ESTILOS = `
 /* capa de foco de Steam: mas suave y dentro de la tarjeta */
 .ede-zona .gpfocus { background: rgba(255,255,255,0.05) !important; border-radius: 14px !important; }
 .ede-zona .gpfocus .ede-tarjeta { outline: 1px solid rgba(10,185,230,0.9); outline-offset: -1px; }
+/* el icono de las tarjetas "late" al resaltar */
+.ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
+.ede-celda:hover .ede-icono-tile,
+.ede-zona .gpfocus .ede-icono-tile { transform: scale(1.16); filter: brightness(1.2); }
 .ede-aparecer { animation: ede-aparecer 150ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .ede-estrella, .ede-aparecer { animation: none; }
@@ -624,6 +628,45 @@ function BotonAccion(props: {
   );
 }
 
+// --- icono de la maquina integrada -----------------------------------------
+function IconoPortatil(props: { size?: number }) {
+  const lado = props.size ?? 17;
+  return (
+    <svg
+      width={lado}
+      height={lado}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-1.5a2 2 0 0 1-1.7-.9l-.8-1.2a1.2 1.2 0 0 0-2 0l-.8 1.2a2 2 0 0 1-1.7.9H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm0 1.8A2.2 2.2 0 0 0 4.8 7v10A2.2 2.2 0 0 0 7 19.2h.8l.8-1.2a3 3 0 0 1 4.8 0l.8 1.2H17a2.2 2.2 0 0 0 2.2-2.2V7A2.2 2.2 0 0 0 17 4.8H7Z" />
+      <rect x="6.6" y="6.4" width="10.8" height="6.8" rx="1.2" />
+      <circle cx="8.1" cy="16.3" r="1.05" />
+      <circle cx="15.9" cy="16.3" r="1.05" />
+    </svg>
+  );
+}
+
+function IconoMaquina(props: { nombre: string; size?: number }) {
+  const n = (props.nombre || "").toLowerCase();
+  const lado = props.size ?? 17;
+  if (n.includes("steam deck") || n.includes("deck controller")) {
+    return <FaSteam size={lado} />;
+  }
+  if (n.includes("xbox")) return <FaXbox size={lado} />;
+  if (
+    n.includes("rog") ||
+    n.includes("ally") ||
+    n.includes("asus") ||
+    n.includes("msi") ||
+    n.includes("claw") ||
+    n.includes("legion")
+  ) {
+    return <IconoPortatil size={lado} />;
+  }
+  return <FaMicrochip size={lado} />;
+}
+
 // --- tarjeta de accion (cuadrada, como las de los mandos) ------------------
 function TarjetaAccion(props: {
   icono: ReactNode;
@@ -660,9 +703,11 @@ function TarjetaAccion(props: {
             width: "100%",
           }}
         >
-          <CirculoIcono color={color} lado={34}>
-            {props.icono}
-          </CirculoIcono>
+          <span className="ede-icono-tile">
+            <CirculoIcono color={color} lado={34}>
+              {props.icono}
+            </CirculoIcono>
+          </span>
           <div style={{ fontSize: "0.68em", fontWeight: 700, lineHeight: 1.15 }}>
             {props.titulo}
           </div>
@@ -837,6 +882,123 @@ function abrirVentana(titulo: string, texto: string) {
   const cierre = { f: () => {} };
   const res = showModal(
     <VentanaTexto titulo={titulo} texto={texto} onCerrar={() => cierre.f()} />
+  );
+  cierre.f = res.Close;
+}
+
+// ---------------------------------------------------------------------------
+//  Ventana de asignacion (Cemu / Dolphin)
+// ---------------------------------------------------------------------------
+function VentanaAsignacion(props: {
+  planes: Record<string, Plan | null>;
+  onCerrar: () => void;
+  onNuevo: (e: Estado) => void;
+}) {
+  const [planes, setPlanes] = useState(props.planes);
+  const [ocupado, setOcupado] = useState(false);
+  const [nota, setNota] = useState("");
+
+  const comprobar = async () => {
+    if (ocupado) return;
+    setOcupado(true);
+    setNota("Comprobando…");
+    try {
+      const nuevo = await call<[], Estado>("comprobar");
+      setPlanes(nuevo.planes);
+      props.onNuevo(nuevo);
+      setNota(nuevo.aviso || "Plan recalculado");
+    } catch (err) {
+      setNota(String(err));
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const bloque = (clave: "wiiu" | "dolphin", etiqueta: string) => {
+    const pl = planes?.[clave];
+    return (
+      <div key={clave} style={{ marginBottom: "12px" }}>
+        <div style={{ fontWeight: 700 }}>{etiqueta}</div>
+        {pl ? (
+          <>
+            <div style={{ opacity: 0.6, fontSize: "0.85em" }}>
+              {pl.modo} · {pl.fecha} · máximo {pl.max} ·{" "}
+              {pl.sdl === "ok" ? "SDL ok" : "SDL error"}
+            </div>
+            {pl.mandos.length === 0 ? (
+              <div style={{ color: C.dorado }}>Ningún mando asignado.</div>
+            ) : (
+              pl.mandos.map((m) => (
+                <div key={m.n}>
+                  <span style={{ color: C.azul, fontWeight: 700 }}>M{m.n}</span>{" "}
+                  {m.nombre}{" "}
+                  <span style={{ opacity: 0.5 }}>[{m.clase}]</span>
+                </div>
+              ))
+            )}
+            {pl.fuera.map((f) => (
+              <div key={f} style={{ color: C.gris, fontSize: "0.92em" }}>
+                fuera: {f.replace("|", ": ")}
+              </div>
+            ))}
+            {pl.aviso.map((a) => (
+              <div key={a} style={{ color: C.dorado, fontSize: "0.92em" }}>
+                {a}
+              </div>
+            ))}
+          </>
+        ) : (
+          <div style={{ opacity: 0.6 }}>
+            Sin datos todavía. Pulsa «Comprobar ahora».
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <ModalRoot strTitle="Asignación" bAllowFullSize onCancel={props.onCerrar}>
+      <DialogBody>
+        <DialogBodyText>
+          <div
+            style={{
+              maxHeight: "45vh",
+              overflowY: "auto",
+              fontSize: "0.9em",
+              lineHeight: 1.4,
+            }}
+          >
+            {bloque("wiiu", "Cemu (Wii U)")}
+            {bloque("dolphin", "Dolphin (GC/Wii)")}
+            {nota ? (
+              <div style={{ marginTop: "6px", opacity: 0.75, fontSize: "0.9em" }}>
+                {nota}
+              </div>
+            ) : null}
+          </div>
+        </DialogBodyText>
+      </DialogBody>
+      <DialogFooter>
+        <DialogButton disabled={ocupado} onClick={() => void comprobar()}>
+          {ocupado ? "Comprobando…" : "Comprobar ahora"}
+        </DialogButton>
+        <DialogButtonPrimary onClick={props.onCerrar}>Cerrar</DialogButtonPrimary>
+      </DialogFooter>
+    </ModalRoot>
+  );
+}
+
+function abrirAsignacion(
+  planes: Record<string, Plan | null>,
+  onNuevo: (e: Estado) => void
+) {
+  const cierre = { f: () => {} };
+  const res = showModal(
+    <VentanaAsignacion
+      planes={planes}
+      onCerrar={() => cierre.f()}
+      onNuevo={onNuevo}
+    />
   );
   cierre.f = res.Close;
 }
@@ -1030,6 +1192,8 @@ function Content() {
 
   const p = est.prefs;
   const cuadricula = est.mandos.length >= 2;
+  const integradoNombre =
+    est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
 
   // la MAC solo cuando hay mas de un mando del mismo tipo
   const repetidos = (clase: string) =>
@@ -1055,14 +1219,6 @@ function Content() {
     }
     return trozos.length ? trozos.join(" · ") : "sin datos";
   })();
-
-  const comprobarPlanes = () =>
-    conBloqueo(async () => {
-      const nuevo = await call<[], Estado>("comprobar");
-      setEst(nuevo);
-      if (nuevo.aviso) avisar(nuevo.aviso);
-      else avisar("Plan recalculado");
-    });
 
   const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
     est.integrado_auto ? " (auto)" : ""
@@ -1235,78 +1391,15 @@ function Content() {
         </PanelSectionRow>
       </Seccion>
 
-      <Seccion
-        titulo="Asignación"
-        icono={<FaFileAlt size={12} />}
-        resumen={resumenPlanes}
-        abierta={Boolean(abiertas.asig)}
-        onToggle={() => toggle("asig")}
-      >
-        {(
-          [
-            ["wiiu", "Cemu (Wii U)"],
-            ["dolphin", "Dolphin (GC/Wii)"],
-          ] as const
-        ).map(([clave, etiqueta]) => {
-          const pl = est.planes?.[clave];
-          return (
-            <PanelSectionRow key={clave}>
-              <div
-                style={{
-                  width: "100%",
-                  fontSize: "0.8em",
-                  lineHeight: 1.45,
-                  padding: "2px 4px",
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>{etiqueta}</div>
-                {pl ? (
-                  <>
-                    <div style={{ opacity: 0.6, fontSize: "0.9em" }}>
-                      {pl.modo} · {pl.fecha} · máximo {pl.max} ·{" "}
-                      {pl.sdl === "ok" ? "SDL ok" : "SDL error"}
-                    </div>
-                    {pl.mandos.length === 0 ? (
-                      <div style={{ color: C.dorado }}>Ningún mando asignado.</div>
-                    ) : (
-                      pl.mandos.map((m) => (
-                        <div key={m.n}>
-                          <span style={{ color: C.azul, fontWeight: 700 }}>
-                            M{m.n}
-                          </span>{" "}
-                          {m.nombre}{" "}
-                          <span style={{ opacity: 0.5 }}>[{m.clase}]</span>
-                        </div>
-                      ))
-                    )}
-                    {pl.fuera.map((f) => (
-                      <div key={f} style={{ color: C.gris, fontSize: "0.92em" }}>
-                        fuera: {f.replace("|", ": ")}
-                      </div>
-                    ))}
-                    {pl.aviso.map((a) => (
-                      <div key={a} style={{ color: C.dorado, fontSize: "0.92em" }}>
-                        {a}
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <div style={{ opacity: 0.6 }}>
-                    Sin datos todavía. Pulsa «Comprobar ahora».
-                  </div>
-                )}
-              </div>
-            </PanelSectionRow>
-          );
-        })}
+      <PanelSection>
         <PanelSectionRow>
           <BotonAccion
-            icono={<FaSyncAlt size={14} />}
-            texto="Comprobar ahora"
-            onClick={comprobarPlanes}
+            icono={<FaFileAlt size={14} />}
+            texto={`Asignación · ${resumenPlanes}`}
+            onClick={() => abrirAsignacion(est.planes, setEst)}
           />
         </PanelSectionRow>
-      </Seccion>
+      </PanelSection>
 
       <Seccion
         titulo="Ajustes"
@@ -1326,7 +1419,7 @@ function Content() {
           </div>
           <div className="ede-celda">
             <TarjetaAccion
-              icono={<FaMicrochip size={17} />}
+              icono={<IconoMaquina nombre={integradoNombre} />}
               titulo="Integrado"
               detalle={`${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
                 est.integrado_auto ? " (auto)" : ""
