@@ -110,6 +110,22 @@ async def main():
     est = await mod.Plugin().estado()
     check("ya no falta nada", est["reparar"] is False and est["desactualizado"] is False)
 
+    # el plan que dejan los drivers se lee para el panel
+    with open(os.path.join(base, "plan-wiiu.txt"), "w", encoding="utf-8") as fh:
+        fh.write("fecha=2026-01-01 10:00:00\nsistema=wiiu\nmodo=aplicar\n"
+                 "max=3\nsdl=ok\nlib=libSDL3\ndetectados=2\n"
+                 "mando=1|DualSense Wireless Controller 1|dual\n"
+                 "mando=2|Asus Rog Ally Controller|integrado\n"
+                 "aviso=el integrado no entra\n")
+    est = await mod.Plugin().estado()
+    plan = est["planes"]["wiiu"]
+    check("lee el plan de Cemu", plan is not None and len(plan["mandos"]) == 2,
+          plan)
+    check("mando 1 del plan", plan["mandos"][0]["nombre"].startswith("DualSense"),
+          plan["mandos"][0])
+    check("aviso del plan", plan["aviso"] == ["el integrado no entra"], plan["aviso"])
+    check("Dolphin sin plan", est["planes"]["dolphin"] is None)
+
     # ------------------------------------------------------------------ 3
     print("3) deteccion simulada (EDEN_FAKE_SDL)")
     fake = os.path.join(tmp, "sdl.txt")

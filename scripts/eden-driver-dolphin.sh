@@ -30,7 +30,8 @@ DOLPHIN_DIRS=(
     "$HOME/Documents/Dolphin Emulator"
 )
 
-d_say()  { printf '%s\n' "$*"; }
+QUIET=0
+d_say()  { [ "$QUIET" = "1" ] && return 0; printf '%s\n' "$*"; }
 d_warn() { printf 'AVISO: %s\n' "$*" >&2; }
 d_err()  { printf 'ERROR: %s\n' "$*" >&2; }
 
@@ -128,15 +129,8 @@ d_cmd_status() {
     dir="$(d_dir)" || { d_err "no encuentro la configuracion de Dolphin"; return 4; }
     d_say "Dolphin            : $dir"
     d_say "en ejecucion       : $(d_en_ejecucion && echo SI || echo no)"
-    if d_planificar; then
-        local i
-        d_say "mandos a asignar   : ${#PLAN_NOMBRE[@]}"
-        for i in "${!PLAN_NOMBRE[@]}"; do
-            d_say "  Player $((i + 1)) = ${PLAN_NOMBRE[$i]}  (indice ${PLAN_INDICE[$i]}: ${PLAN_SDL[$i]})"
-        done
-    else
-        d_say "mandos a asignar   : ninguno"
-    fi
+    d_planificar || true
+    nucleo_imprimir_plan
     local f
     for f in GCPadNew.ini WiimoteNew.ini; do
         [ -f "$dir/$f" ] || continue
@@ -149,8 +143,13 @@ d_cmd_status() {
 d_cmd_dryrun() {
     local dir
     dir="$(d_dir)" || { d_err "no encuentro la configuracion de Dolphin"; return 4; }
-    d_planificar || { d_say "nada que hacer (no hay mandos)"; return 2; }
+    d_planificar || {
+        nucleo_imprimir_plan
+        nucleo_guardar_plan dolphin dry-run
+        return 2
+    }
     d_say "Dolphin: $dir"
+    nucleo_imprimir_plan
     local f prefijo n
     for f in GCPadNew.ini WiimoteNew.ini; do
         [ -f "$dir/$f" ] || continue
@@ -162,6 +161,8 @@ d_cmd_dryrun() {
         done
     done
     d_say "(dry-run: no se ha escrito nada)"
+    nucleo_guardar_plan dolphin dry-run
+    nucleo_registrar dolphin dry-run
     return 0
 }
 
@@ -174,7 +175,13 @@ d_cmd_aplicar() {
         return 3
     fi
 
-    d_planificar || { d_say "nada que hacer (no hay mandos)"; return 2; }
+    d_planificar || {
+        [ "$QUIET" = "1" ] || nucleo_imprimir_plan
+        nucleo_guardar_plan dolphin aplicar
+        nucleo_registrar dolphin aplicar
+        d_warn "no hay mandos que asignar: dejo la configuracion como estaba"
+        return 2
+    }
 
     local bk stamp f prefijo
     bk="$(d_backups)"
@@ -209,6 +216,8 @@ d_cmd_aplicar() {
         done
     fi
 
+    nucleo_guardar_plan dolphin aplicar
+    nucleo_registrar dolphin aplicar
     return 0
 }
 
@@ -259,7 +268,8 @@ main() {
                 esac
                 ;;
             --help|-h) d_usage; return 0 ;;
-            --quiet|-q|--verbose|-v) : ;;
+            --quiet|-q) QUIET=1 ;;
+            --verbose|-v) : ;;
             *)
                 d_err "opcion no reconocida: $1"
                 d_usage >&2

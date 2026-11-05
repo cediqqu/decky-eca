@@ -160,7 +160,11 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
 - El **plan compartido** (Dolphin y Cemu) vive en `eden-nucleo.sh`
   (`nucleo_mandos` + `nucleo_planificar`): clasifica `dual|integrado|otro`,
   respeta `ORDEN_INTEGRADO`, `P1_SERIE` y `JUGADORES_MAX`. Eden mantiene su
-  propio planificador.
+  propio planificador. `nucleo_planificar` nunca se llama en subshell: deja
+  `SDL_OK`/`SDL_ERR` y los arrays `NUCLEO_*` para poder explicar el plan.
+- Los drivers dejan `plan-<sistema>.txt` (lo lee el panel) y escriben en
+  `log.txt`; `nucleo_guardar_plan` / `nucleo_registrar` son los únicos que
+  tocan esos ficheros.
 - Cemu identifica el mando por `uuid = <puerto>_<guid>`; `display_name`,
   `<profile>` y `<type>` no intervienen en la búsqueda. El driver solo cambia el
   dispositivo: conserva tipo, perfil, bindings y las entradas no-SDL (DSU).

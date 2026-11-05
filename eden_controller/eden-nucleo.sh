@@ -65,15 +65,33 @@ nucleo_coincide() {
 #   NOMBRE|SDL|SERIE|INDICE|CLASE|UUID
 #     CLASE = dual | integrado | otro
 #     UUID  = "<puerto>_<guid>" en el dialecto pedido ($1 = eden|cemu)
+# Deja SDL_OK / SDL_ERR / SDL_LIB con el resultado de interrogar a SDL.
+SDL_OK=0
+SDL_ERR=""
+SDL_LIB=""
+NUCLEO_RAW=()
+
 nucleo_mandos() {
-    local modo="${1:-eden}" helper out
-    helper="$(nucleo_helper_sdl)" || return 1
+    NUCLEO_RAW=()
+    local modo="${1:-eden}" helper out err tmp errc
+    SDL_OK=0; SDL_ERR=""; SDL_LIB=""
+    helper="$(nucleo_helper_sdl)" || { SDL_ERR="no encuentro eden-mandos-sdl.sh"; return 1; }
+    tmp="$(mktemp "${TMPDIR:-/tmp}/eca-sdl.XXXXXX" 2>/dev/null || echo "/tmp/eca-sdl.$$")"
     if [ "$modo" = "cemu" ]; then
-        out="$(SDL_FUENTE=sistema SDL_GUID_MODO=cemu bash "$helper" 2>/dev/null)" || return 1
+        out="$(SDL_FUENTE=sistema SDL_GUID_MODO=cemu bash "$helper" 2>"$tmp")"
     else
-        out="$(bash "$helper" 2>/dev/null)" || return 1
+        out="$(bash "$helper" 2>"$tmp")"
     fi
-    printf '%s\n' "$out" | while IFS='|' read -r nombre guid puerto tipo esgp sdl serie indice; do
+    errc=$?
+    err="$(head -n 1 "$tmp" 2>/dev/null | sed 's/  */ /g' | cut -c1-160)"
+    rm -f "$tmp"
+    if [ "$errc" -ne 0 ]; then
+        SDL_ERR="${err:-error desconocido}"
+        return 1
+    fi
+    SDL_OK=1
+    SDL_LIB="$(printf '%s\n' "$out" | grep -m1 '^#lib ' | sed 's/^#lib //')"
+    while IFS='|' read -r nombre guid puerto tipo esgp sdl serie indice; do
         case "$nombre" in ''|'#'*) continue ;; esac
         [ "${esgp:-0}" = "1" ] || continue
         local clase="otro"
@@ -85,32 +103,45 @@ nucleo_mandos() {
         elif nucleo_coincide "$nombre" "${INTEGRADO_PATRON:-}"; then
             clase="integrado"
         fi
-        printf '%s|%s|%s|%s|%s|%s_%s\n' "$nombre" "${sdl:-$nombre}" "${serie:-}" \
-            "${indice:-0}" "$clase" "${puerto:-0}" "$guid"
-    done
+        NUCLEO_RAW+=("$nombre|${sdl:-$nombre}|${serie:-}|${indice:-0}|$clase|${puerto:-0}_${guid}")
+    done <<<"$out"
 }
 
-# Rellena el plan (arrays PLAN_*) respetando ORDEN_INTEGRADO, P1_SERIE y
-# JUGADORES_MAX. Devuelve 0 si hay algo, 2 si no hay mandos.
-#   PLAN_NOMBRE  nombre que da SDL/Eden      PLAN_SDL   nombre SDL
-#   PLAN_SERIE   serie (MAC)                 PLAN_INDICE indice SDL
-#   PLAN_CLASE   dual|integrado|otro         PLAN_UUID  "<puerto>_<guid>"
+# Rellena el plan y todo lo necesario para explicarlo:
+#   PLAN_NOMBRE/SDL/SERIE/INDICE/CLASE/UUID   -> los asignados (en orden)
+#   NUCLEO_TODOS    -> todos los detectados ("nombre|sdl|serie|indice|clase|uuid")
+#   NUCLEO_ASIGNADO -> 1/0 por cada uno de NUCLEO_TODOS
+#   NUCLEO_FUERA    -> "nombre|motivo" de los que no entran
+#   NUCLEO_AVISOS   -> avisos legibles
+# Devuelve 0 si hay algo asignado, 2 si no.
 nucleo_planificar() { # $1 = eden|cemu
     local modo="${1:-eden}" linea nombre sdl serie indice clase uuid
     nucleo_prefs
     PLAN_NOMBRE=(); PLAN_SDL=(); PLAN_SERIE=(); PLAN_INDICE=()
     PLAN_CLASE=(); PLAN_UUID=()
+    NUCLEO_TODOS=(); NUCLEO_ASIGNADO=(); NUCLEO_FUERA=(); NUCLEO_AVISOS=()
 
+    nucleo_mandos "$modo"
     local duales=() integrados=() otros=()
-    while IFS= read -r linea; do
+    for linea in "${NUCLEO_RAW[@]+"${NUCLEO_RAW[@]}"}"; do
         [ -n "$linea" ] || continue
         IFS='|' read -r nombre sdl serie indice clase uuid <<<"$linea"
+        NUCLEO_TODOS+=("$linea")
         case "$clase" in
             dual)      duales+=("$linea") ;;
             integrado) integrados+=("$linea") ;;
             *)         otros+=("$linea") ;;
         esac
-    done < <(nucleo_mandos "$modo")
+    done
+
+    if [ "$SDL_OK" -ne 1 ]; then
+        NUCLEO_AVISOS+=("no he podido interrogar a SDL: ${SDL_ERR:-sin detalle}")
+        return 2
+    fi
+    if [ "${#NUCLEO_TODOS[@]}" -eq 0 ]; then
+        NUCLEO_AVISOS+=("SDL no ve ningun mando (¿estan encendidos?)")
+        return 2
+    fi
 
     local lista=() orden_int="ultimo" incluir_int=0
     case "${ORDEN_INTEGRADO:-ignorar}" in
@@ -122,29 +153,30 @@ nucleo_planificar() { # $1 = eden|cemu
     if [ "${#duales[@]}" -eq 0 ]; then
         incluir_int=1
         orden_int="primero"
+        if [ "${#integrados[@]}" -gt 0 ]; then
+            NUCLEO_AVISOS+=("no hay DualSense: uso el integrado como Player 1")
+        elif [ "${#otros[@]}" -gt 0 ]; then
+            NUCLEO_AVISOS+=("no hay DualSense ni integrado: uso los mandos disponibles")
+        fi
+    elif [ "${ORDEN_INTEGRADO:-ignorar}" = "ignorar" ] && [ "${#integrados[@]}" -gt 0 ]; then
+        NUCLEO_AVISOS+=("el integrado no entra (ORDEN_INTEGRADO=ignorar)")
     fi
 
     # ordenar cada grupo por indice SDL (orden de conexion)
     local ordenada
     if [ "${#duales[@]}" -gt 0 ]; then
-        ordenada=()
-        while IFS= read -r linea; do ordenada+=("$linea"); done < <(
-            printf '%s\n' "${duales[@]}" | sort -t'|' -k4,4n
-        )
+        ordenada=(); while IFS= read -r linea; do ordenada+=("$linea"); done < <(
+            printf '%s\n' "${duales[@]}" | sort -t'|' -k4,4n)
         duales=("${ordenada[@]}")
     fi
     if [ "${#integrados[@]}" -gt 0 ]; then
-        ordenada=()
-        while IFS= read -r linea; do ordenada+=("$linea"); done < <(
-            printf '%s\n' "${integrados[@]}" | sort -t'|' -k4,4n
-        )
+        ordenada=(); while IFS= read -r linea; do ordenada+=("$linea"); done < <(
+            printf '%s\n' "${integrados[@]}" | sort -t'|' -k4,4n)
         integrados=("${ordenada[@]}")
     fi
     if [ "${#otros[@]}" -gt 0 ]; then
-        ordenada=()
-        while IFS= read -r linea; do ordenada+=("$linea"); done < <(
-            printf '%s\n' "${otros[@]}" | sort -t'|' -k4,4n
-        )
+        ordenada=(); while IFS= read -r linea; do ordenada+=("$linea"); done < <(
+            printf '%s\n' "${otros[@]}" | sort -t'|' -k4,4n)
         otros=("${ordenada[@]}")
     fi
 
@@ -193,6 +225,125 @@ nucleo_planificar() { # $1 = eden|cemu
         PLAN_UUID+=("$uuid")
     done
 
-    [ "${#PLAN_NOMBRE[@]}" -gt 0 ] || return 2
+    # marcar asignados y explicar el resto
+    local t dentro
+    for t in "${!NUCLEO_TODOS[@]}"; do
+        IFS='|' read -r nombre sdl serie indice clase uuid <<<"${NUCLEO_TODOS[$t]}"
+        dentro=0
+        for i in "${!PLAN_UUID[@]}"; do
+            [ "${PLAN_UUID[$i]}" = "$uuid" ] && { dentro=1; break; }
+        done
+        NUCLEO_ASIGNADO+=("$dentro")
+        if [ "$dentro" -eq 0 ]; then
+            local en_lista=0 l
+            for l in "${lista[@]+"${lista[@]}"}"; do
+                [ "${l##*|}" = "$uuid" ] && { en_lista=1; break; }
+            done
+            if [ "$en_lista" -eq 1 ]; then
+                NUCLEO_FUERA+=("$nombre|limite de jugadores ($tope)")
+            else
+                case "$clase" in
+                    integrado) NUCLEO_FUERA+=("$nombre|integrado fuera (orden=ignorar)") ;;
+                    otro)      NUCLEO_FUERA+=("$nombre|no es DualSense") ;;
+                    *)         NUCLEO_FUERA+=("$nombre|limite de jugadores ($tope)") ;;
+                esac
+            fi
+        fi
+    done
+    if [ "${#lista[@]}" -gt "$tope" ]; then
+        NUCLEO_AVISOS+=("${#lista[@]} mandos detectados y solo entran $tope: sube «Mandos a configurar»")
+    fi
+    [ "${#PLAN_UUID[@]}" -gt 0 ] || return 2
     return 0
+}
+
+# Imprime el plan con su explicacion (para --status / --dry-run / --diagnostico)
+nucleo_imprimir_plan() {
+    local i
+    if [ "$SDL_OK" -eq 1 ]; then
+        printf 'deteccion SDL      : ok%s\n' "${SDL_LIB:+ ($SDL_LIB)}"
+    else
+        printf 'deteccion SDL      : ERROR: %s\n' "${SDL_ERR:-sin detalle}"
+    fi
+    printf 'detectados         : %d\n' "${#NUCLEO_TODOS[@]}"
+    for i in "${!NUCLEO_TODOS[@]}"; do
+        local nombre sdl serie indice clase uuid
+        IFS='|' read -r nombre sdl serie indice clase uuid <<<"${NUCLEO_TODOS[$i]}"
+        if [ "${NUCLEO_ASIGNADO[$i]:-0}" = "1" ]; then
+            printf '  [ok]  %-30s %-10s %s\n' "$sdl" "$clase" "$uuid"
+        else
+            printf '  [--]  %-30s %-10s\n' "$sdl" "$clase"
+        fi
+    done
+    if [ "${#PLAN_UUID[@]}" -gt 0 ]; then
+        printf 'asignados          : %d\n' "${#PLAN_UUID[@]}"
+        for i in "${!PLAN_UUID[@]}"; do
+            printf '  Mando %d = %s  [%s]\n' "$((i + 1))" "${PLAN_SDL[$i]}" "${PLAN_CLASE[$i]}"
+            printf '           uuid %s\n' "${PLAN_UUID[$i]}"
+        done
+    else
+        printf 'asignados          : ninguno\n'
+    fi
+    if [ "${#NUCLEO_FUERA[@]}" -gt 0 ]; then
+        printf 'fuera              :\n'
+        for i in "${!NUCLEO_FUERA[@]}"; do
+            printf '  - %s\n' "${NUCLEO_FUERA[$i]//|/: }"
+        done
+    fi
+    for i in "${!NUCLEO_AVISOS[@]}"; do
+        printf 'AVISO: %s\n' "${NUCLEO_AVISOS[$i]}"
+    done
+}
+
+# --- registro y estado para el panel ---------------------------------------
+nucleo_log() {
+    local base f
+    base="$(nucleo_base)"
+    f="$base/log.txt"
+    mkdir -p "$base" 2>/dev/null || return 0
+    printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$f" 2>/dev/null || true
+    if [ "$(wc -l <"$f" 2>/dev/null || echo 0)" -gt 800 ]; then
+        tail -n 500 "$f" >"$f.tmp" 2>/dev/null && mv -f "$f.tmp" "$f" 2>/dev/null
+    fi
+}
+
+# Guarda el plan en ~/eden-autoconfig/plan-<sistema>.txt para el panel.
+nucleo_guardar_plan() { # $1 = sistema, $2 = modo
+    local sistema="$1" modo="$2" base f i
+    base="$(nucleo_base)"
+    f="$base/plan-$sistema.txt"
+    mkdir -p "$base" 2>/dev/null || return 0
+    {
+        printf 'fecha=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+        printf 'sistema=%s\n' "$sistema"
+        printf 'modo=%s\n' "$modo"
+        printf 'max=%s\n' "${JUGADORES_MAX:-?}"
+        printf 'sdl=%s\n' "$([ "$SDL_OK" -eq 1 ] && echo ok || echo error)"
+        printf 'lib=%s\n' "${SDL_LIB:-}"
+        printf 'detectados=%s\n' "${#NUCLEO_TODOS[@]}"
+        for i in "${!PLAN_UUID[@]}"; do
+            printf 'mando=%s|%s|%s\n' "$((i + 1))" "${PLAN_SDL[$i]}" "${PLAN_CLASE[$i]}"
+        done
+        for i in "${!NUCLEO_FUERA[@]}"; do
+            printf 'fuera=%s\n' "${NUCLEO_FUERA[$i]}"
+        done
+        for i in "${!NUCLEO_AVISOS[@]}"; do
+            printf 'aviso=%s\n' "${NUCLEO_AVISOS[$i]}"
+        done
+    } >"$f.tmp" 2>/dev/null && mv -f "$f.tmp" "$f" 2>/dev/null
+}
+
+# Vuelca el plan al log (una linea por cosa, facil de leer con tail)
+nucleo_registrar() { # $1 = sistema, $2 = modo
+    local i
+    nucleo_log "$1 $2: SDL=$([ "$SDL_OK" -eq 1 ] && echo ok || echo "error(${SDL_ERR:-?})") lib=${SDL_LIB:-?} detectados=${#NUCLEO_TODOS[@]} max=${JUGADORES_MAX:-?}"
+    for i in "${!PLAN_UUID[@]}"; do
+        nucleo_log "$1 $2: Mando $((i + 1)) = ${PLAN_SDL[$i]} [${PLAN_CLASE[$i]}] uuid=${PLAN_UUID[$i]}"
+    done
+    for i in "${!NUCLEO_FUERA[@]}"; do
+        nucleo_log "$1 $2: fuera ${NUCLEO_FUERA[$i]}"
+    done
+    for i in "${!NUCLEO_AVISOS[@]}"; do
+        nucleo_log "$1 AVISO: ${NUCLEO_AVISOS[$i]}"
+    done
 }

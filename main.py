@@ -680,6 +680,33 @@ def _version_bundle():
     return "?"
 
 
+def _leer_plan(nombre):
+    """Lee ~/eden-autoconfig/plan-<sistema>.txt (lo escriben los drivers)."""
+    ruta = os.path.join(_base(), "plan-%s.txt" % nombre)
+    if not os.path.isfile(ruta):
+        return None
+    datos = {"sistema": nombre, "fecha": "", "modo": "", "max": "", "sdl": "",
+             "lib": "", "detectados": "0", "mandos": [], "fuera": [], "aviso": []}
+    try:
+        with open(ruta, "r", encoding="utf-8", errors="replace") as fh:
+            for linea in fh:
+                if "=" not in linea:
+                    continue
+                clave, valor = linea.rstrip("\n").split("=", 1)
+                if clave == "mando":
+                    partes = valor.split("|")
+                    if len(partes) >= 3:
+                        datos["mandos"].append(
+                            {"n": partes[0], "nombre": partes[1], "clase": partes[2]})
+                elif clave in ("fuera", "aviso"):
+                    datos[clave].append(valor)
+                elif clave in datos:
+                    datos[clave] = valor
+    except Exception:
+        return None
+    return datos
+
+
 def _conexion(guid):
     bus = (guid or "")[:2].lower()
     if bus == "05":
@@ -899,10 +926,33 @@ class Plugin:
             "desactualizado": bool(
                 ok and (faltan or (has_bundle and has_inst and has_inst != has_bundle))
             ),
+            "planes": {
+                "wiiu": _leer_plan("wiiu"),
+                "dolphin": _leer_plan("dolphin"),
+            },
             "aviso": aviso,
         }
 
     # ------------------------------------------------------------- acciones
+    async def comprobar(self):
+        """Recalcula el plan de Cemu y Dolphin sin escribir nada (para el panel)."""
+        ok, _ = _instalado()
+        if not ok:
+            return await self.estado()
+        notas = []
+        for sistema, etiqueta in (("wiiu", "Cemu"), ("gc", "Dolphin")):
+            rc, salida = await _run(
+                ["bash", _script(SCRIPT), "--sistema", sistema, "--dry-run"],
+                timeout=90,
+            )
+            if rc not in (0, 2):
+                notas.append("%s: %s" % (etiqueta, _corta(salida).splitlines()[-1]
+                                         if _corta(salida) else "error %s" % rc))
+        estado = await self.estado()
+        if notas:
+            estado["aviso"] = "\n".join(notas)
+        return estado
+
     async def alternar_principal(self, serie):
         """Marca/desmarca un mando concreto como Player 1."""
         serie = (serie or "").strip()

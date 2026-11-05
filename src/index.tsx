@@ -66,6 +66,21 @@ type Prefs = {
   ORDEN_DUALSENSE: string;
 };
 
+type PlanMando = { n: string; nombre: string; clase: string };
+
+type Plan = {
+  sistema: string;
+  fecha: string;
+  modo: string;
+  max: string;
+  sdl: string;
+  lib: string;
+  detectados: string;
+  mandos: PlanMando[];
+  fuera: string[];
+  aviso: string[];
+};
+
 type Estado = {
   ok: boolean;
   instalado: boolean;
@@ -85,6 +100,7 @@ type Estado = {
   desactualizado: boolean;
   reparar: boolean;
   faltan: string[];
+  planes: Record<string, Plan | null>;
   aviso: string;
 };
 
@@ -957,6 +973,26 @@ function Content() {
     return partes.length ? partes.join(" · ") : "sin mandos externos";
   };
 
+  const resumenPlanes = (() => {
+    const trozos: string[] = [];
+    for (const [clave, etiqueta] of [
+      ["wiiu", "Cemu"],
+      ["dolphin", "Dolphin"],
+    ] as const) {
+      const pl = est.planes?.[clave];
+      if (pl && pl.mandos.length) trozos.push(`${etiqueta} ${pl.mandos.length}`);
+    }
+    return trozos.length ? trozos.join(" · ") : "sin datos";
+  })();
+
+  const comprobarPlanes = () =>
+    conBloqueo(async () => {
+      const nuevo = await call<[], Estado>("comprobar");
+      setEst(nuevo);
+      if (nuevo.aviso) avisar(nuevo.aviso);
+      else avisar("Plan recalculado");
+    });
+
   const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
     est.integrado_auto ? " (auto)" : ""
   }`;
@@ -1124,6 +1160,79 @@ function Content() {
             icono={<FaSyncAlt size={14} />}
             texto="Recargar mandos"
             onClick={() => conBloqueo(refrescar)}
+          />
+        </PanelSectionRow>
+      </Seccion>
+
+      <Seccion
+        titulo="Asignación"
+        icono={<FaFileAlt size={12} />}
+        resumen={resumenPlanes}
+        abierta={Boolean(abiertas.asig)}
+        onToggle={() => toggle("asig")}
+      >
+        {(
+          [
+            ["wiiu", "Cemu (Wii U)"],
+            ["dolphin", "Dolphin (GC/Wii)"],
+          ] as const
+        ).map(([clave, etiqueta]) => {
+          const pl = est.planes?.[clave];
+          return (
+            <PanelSectionRow key={clave}>
+              <div
+                style={{
+                  width: "100%",
+                  fontSize: "0.8em",
+                  lineHeight: 1.45,
+                  padding: "2px 4px",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{etiqueta}</div>
+                {pl ? (
+                  <>
+                    <div style={{ opacity: 0.6, fontSize: "0.9em" }}>
+                      {pl.modo} · {pl.fecha} · máximo {pl.max} ·{" "}
+                      {pl.sdl === "ok" ? "SDL ok" : "SDL error"}
+                    </div>
+                    {pl.mandos.length === 0 ? (
+                      <div style={{ color: C.dorado }}>Ningún mando asignado.</div>
+                    ) : (
+                      pl.mandos.map((m) => (
+                        <div key={m.n}>
+                          <span style={{ color: C.azul, fontWeight: 700 }}>
+                            M{m.n}
+                          </span>{" "}
+                          {m.nombre}{" "}
+                          <span style={{ opacity: 0.5 }}>[{m.clase}]</span>
+                        </div>
+                      ))
+                    )}
+                    {pl.fuera.map((f) => (
+                      <div key={f} style={{ color: C.gris, fontSize: "0.92em" }}>
+                        fuera: {f.replace("|", ": ")}
+                      </div>
+                    ))}
+                    {pl.aviso.map((a) => (
+                      <div key={a} style={{ color: C.dorado, fontSize: "0.92em" }}>
+                        {a}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div style={{ opacity: 0.6 }}>
+                    Sin datos todavía. Pulsa «Comprobar ahora».
+                  </div>
+                )}
+              </div>
+            </PanelSectionRow>
+          );
+        })}
+        <PanelSectionRow>
+          <BotonAccion
+            icono={<FaSyncAlt size={14} />}
+            texto="Comprobar ahora"
+            onClick={comprobarPlanes}
           />
         </PanelSectionRow>
       </Seccion>

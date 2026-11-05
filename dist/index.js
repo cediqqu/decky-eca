@@ -678,6 +678,26 @@ function Content() {
         }
         return partes.length ? partes.join(" · ") : "sin mandos externos";
     };
+    const resumenPlanes = (() => {
+        const trozos = [];
+        for (const [clave, etiqueta] of [
+            ["wiiu", "Cemu"],
+            ["dolphin", "Dolphin"],
+        ]) {
+            const pl = est.planes?.[clave];
+            if (pl && pl.mandos.length)
+                trozos.push(`${etiqueta} ${pl.mandos.length}`);
+        }
+        return trozos.length ? trozos.join(" · ") : "sin datos";
+    })();
+    const comprobarPlanes = () => conBloqueo(async () => {
+        const nuevo = await call("comprobar");
+        setEst(nuevo);
+        if (nuevo.aviso)
+            avisar(nuevo.aviso);
+        else
+            avisar("Plan recalculado");
+    });
     const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`;
     return (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx("style", { children: ESTILOS }), !est.instalado || est.desactualizado || !est.hook ? (SP_JSX.jsx(DFL.PanelSection, { title: !est.instalado
                     ? "Primer uso"
@@ -712,7 +732,18 @@ function Content() {
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Ajustes", icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: () => ciclar("max"), children: SP_JSX.jsxs("div", { style: { display: "flex", justifyContent: "space-between" }, children: [SP_JSX.jsx("span", { children: "Mandos a configurar" }), SP_JSX.jsx("span", { style: { fontWeight: 700 }, children: p.JUGADORES_MAX })] }) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: () => ciclar("integrado"), children: SP_JSX.jsxs("div", { style: { display: "flex", justifyContent: "space-between" }, children: [SP_JSX.jsx("span", { children: "Mando integrado" }), SP_JSX.jsxs("span", { style: { fontWeight: 700 }, children: [INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO, est.integrado_auto ? " (auto)" : ""] })] }) }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Avanzado", color: C.gris, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaCheck, { size: 14 }), texto: "Aplicar ahora", onClick: aplicar }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaUndo, { size: 13 }), texto: "Restaurar todo", onClick: restaurarTodo }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 13 }), texto: "Ver log", onClick: verLog }) })] })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Asignaci\u00F3n", icono: SP_JSX.jsx(FaFileAlt, { size: 12 }), resumen: resumenPlanes, abierta: Boolean(abiertas.asig), onToggle: () => toggle("asig"), children: [[
+                        ["wiiu", "Cemu (Wii U)"],
+                        ["dolphin", "Dolphin (GC/Wii)"],
+                    ].map(([clave, etiqueta]) => {
+                        const pl = est.planes?.[clave];
+                        return (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                    width: "100%",
+                                    fontSize: "0.8em",
+                                    lineHeight: 1.45,
+                                    padding: "2px 4px",
+                                }, children: [SP_JSX.jsx("div", { style: { fontWeight: 700 }, children: etiqueta }), pl ? (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsxs("div", { style: { opacity: 0.6, fontSize: "0.9em" }, children: [pl.modo, " \u00B7 ", pl.fecha, " \u00B7 m\u00E1ximo ", pl.max, " \u00B7", " ", pl.sdl === "ok" ? "SDL ok" : "SDL error"] }), pl.mandos.length === 0 ? (SP_JSX.jsx("div", { style: { color: C.dorado }, children: "Ning\u00FAn mando asignado." })) : (pl.mandos.map((m) => (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs("span", { style: { color: C.azul, fontWeight: 700 }, children: ["M", m.n] }), " ", m.nombre, " ", SP_JSX.jsxs("span", { style: { opacity: 0.5 }, children: ["[", m.clase, "]"] })] }, m.n)))), pl.fuera.map((f) => (SP_JSX.jsxs("div", { style: { color: C.gris, fontSize: "0.92em" }, children: ["fuera: ", f.replace("|", ": ")] }, f))), pl.aviso.map((a) => (SP_JSX.jsx("div", { style: { color: C.dorado, fontSize: "0.92em" }, children: a }, a)))] })) : (SP_JSX.jsx("div", { style: { opacity: 0.6 }, children: "Sin datos todav\u00EDa. Pulsa \u00ABComprobar ahora\u00BB." }))] }) }, clave));
+                    }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Comprobar ahora", onClick: comprobarPlanes }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Ajustes", icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: () => ciclar("max"), children: SP_JSX.jsxs("div", { style: { display: "flex", justifyContent: "space-between" }, children: [SP_JSX.jsx("span", { children: "Mandos a configurar" }), SP_JSX.jsx("span", { style: { fontWeight: 700 }, children: p.JUGADORES_MAX })] }) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: () => ciclar("integrado"), children: SP_JSX.jsxs("div", { style: { display: "flex", justifyContent: "space-between" }, children: [SP_JSX.jsx("span", { children: "Mando integrado" }), SP_JSX.jsxs("span", { style: { fontWeight: 700 }, children: [INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO, est.integrado_auto ? " (auto)" : ""] })] }) }) })] }), SP_JSX.jsxs(Seccion, { titulo: "Avanzado", color: C.gris, icono: SP_JSX.jsx(FaCog, { size: 13 }), abierta: Boolean(abiertas.avanzado), onToggle: () => toggle("avanzado"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaCheck, { size: 14 }), texto: "Aplicar ahora", onClick: aplicar }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaUndo, { size: 13 }), texto: "Restaurar todo", onClick: restaurarTodo }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaFileAlt, { size: 13 }), texto: "Ver log", onClick: verLog }) })] })] }));
 }
 var index = definePlugin(() => {
     return {

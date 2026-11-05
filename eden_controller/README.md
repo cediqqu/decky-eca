@@ -695,6 +695,12 @@ En los dos, el integrado entra según `ORDEN_INTEGRADO`: `ignorar` (por
 defecto), `primero` (Player 1) o `ultimo` (detrás de los DualSense). Si no hay
 ningún DualSense, entra siempre y de primero. `P1_SERIE` sigue mandando.
 
+Cada ejecución (también la del hook, en silencio) deja rastro:
+
+- `~/eden-autoconfig/log.txt`: qué se detectó, el plan y los avisos.
+- `~/eden-autoconfig/plan-wiiu.txt` / `plan-dolphin.txt`: el último plan, que
+  es lo que enseña la sección **Asignación** del panel.
+
 Comandos útiles:
 
 ```bash

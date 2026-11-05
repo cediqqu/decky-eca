@@ -342,16 +342,8 @@ c_cmd_status() {
     c_say "Cemu               : $dir"
     c_say "perfiles           : $(c_perfiles "$dir")"
     c_say "en ejecucion       : $(c_en_ejecucion && echo SI || echo no)"
-    if c_planificar; then
-        local i
-        c_say "mandos a asignar   : ${#PLAN_UUID[@]}"
-        for i in "${!PLAN_UUID[@]}"; do
-            c_say "  Mando $((i + 1)) = ${PLAN_SDL[$i]}  [${PLAN_CLASE[$i]}]"
-            c_say "             uuid ${PLAN_UUID[$i]}"
-        done
-    else
-        c_say "mandos a asignar   : ninguno"
-    fi
+    c_planificar || true
+    nucleo_imprimir_plan
     local f
     for f in "$(c_perfiles "$dir")"/controller[0-9]*.xml; do
         [ -f "$f" ] || continue
@@ -392,8 +384,13 @@ c_cmd_diagnostico() {
 c_cmd_dryrun() {
     local dir
     dir="$(c_dir)" || { c_err "no encuentro la configuracion de Cemu"; return 4; }
-    c_planificar || { c_say "nada que hacer (no hay mandos)"; return 2; }
+    c_planificar || {
+        nucleo_imprimir_plan
+        nucleo_guardar_plan wiiu dry-run
+        return 2
+    }
     c_say "Cemu: $dir"
+    nucleo_imprimir_plan
     local i n f
     for i in "${!PLAN_UUID[@]}"; do
         n=$((i + 1))
@@ -407,6 +404,8 @@ c_cmd_dryrun() {
         [ -f "$f" ] && c_say "  Mando $n  ($(basename "$f")) -> a Disconnected"
     done
     c_say "(dry-run: no se ha escrito nada)"
+    nucleo_guardar_plan wiiu dry-run
+    nucleo_registrar wiiu dry-run
     return 0
 }
 
@@ -419,7 +418,13 @@ c_cmd_aplicar() {
         return 3
     fi
 
-    c_planificar || { c_say "nada que hacer (no hay mandos)"; return 2; }
+    c_planificar || {
+        [ "$QUIET" = "1" ] || nucleo_imprimir_plan
+        nucleo_guardar_plan wiiu aplicar
+        nucleo_registrar wiiu aplicar
+        c_warn "no hay mandos que asignar: dejo la configuracion como estaba"
+        return 2
+    }
 
     local i n f
     for i in "${!PLAN_UUID[@]}"; do
@@ -439,6 +444,8 @@ c_cmd_aplicar() {
     done
 
     c_retencion
+    nucleo_guardar_plan wiiu aplicar
+    nucleo_registrar wiiu aplicar
     return 0
 }
 
