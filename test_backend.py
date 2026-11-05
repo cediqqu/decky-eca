@@ -125,6 +125,9 @@ async def main():
           plan["mandos"][0])
     check("aviso del plan", plan["aviso"] == ["el integrado no entra"], plan["aviso"])
     check("Dolphin sin plan", est["planes"]["dolphin"] is None)
+    check("datos de la maquina", isinstance(est.get("maquina"), dict)
+          and set(est["maquina"]) == {"vendor", "producto", "placa"},
+          est.get("maquina"))
 
     # ------------------------------------------------------------------ 3
     print("3) deteccion simulada (EDEN_FAKE_SDL)")

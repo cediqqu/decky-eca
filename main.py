@@ -680,6 +680,22 @@ def _version_bundle():
     return "?"
 
 
+def _maquina():
+    """Datos de la maquina (DMI). Sirve para poner su logo y su nombre."""
+    def leer(campo):
+        try:
+            with open("/sys/class/dmi/id/%s" % campo, "r",
+                      encoding="utf-8", errors="replace") as fh:
+                return fh.read().strip()
+        except Exception:
+            return ""
+    return {
+        "vendor": leer("sys_vendor"),
+        "producto": leer("product_name"),
+        "placa": leer("board_name"),
+    }
+
+
 def _leer_plan(nombre):
     """Lee ~/eden-autoconfig/plan-<sistema>.txt (lo escriben los drivers)."""
     ruta = os.path.join(_base(), "plan-%s.txt" % nombre)
@@ -930,6 +946,7 @@ class Plugin:
                 "wiiu": _leer_plan("wiiu"),
                 "dolphin": _leer_plan("dolphin"),
             },
+            "maquina": _maquina(),
             "aviso": aviso,
         }
 

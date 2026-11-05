@@ -14,6 +14,7 @@ import {
   staticClasses,
 } from "@decky/ui";
 import { call, definePlugin } from "@decky/api";
+import { SiAsus, SiLenovo, SiMsi, SiSteamdeck } from "react-icons/si";
 import { useEffect, useRef, useState } from "react";
 import {
   FaBan,
@@ -66,6 +67,8 @@ type Prefs = {
   ORDEN_DUALSENSE: string;
 };
 
+type Maquina = { vendor: string; producto: string; placa: string };
+
 type PlanMando = { n: string; nombre: string; clase: string };
 
 type Plan = {
@@ -101,6 +104,7 @@ type Estado = {
   reparar: boolean;
   faltan: string[];
   planes: Record<string, Plan | null>;
+  maquina: Maquina;
   aviso: string;
 };
 
@@ -673,24 +677,73 @@ function IconoPortatil(props: { size?: number }) {
   );
 }
 
-function IconoMaquina(props: { nombre: string; size?: number }) {
-  const n = (props.nombre || "").toLowerCase();
-  const lado = props.size ?? 17;
-  if (n.includes("steam deck") || n.includes("deck controller")) {
-    return <FaSteam size={lado} />;
-  }
-  if (n.includes("xbox")) return <FaXbox size={lado} />;
+function textoMaquina(m: Maquina | null | undefined, nombre: string): string {
+  return `${m?.vendor ?? ""} ${m?.producto ?? ""} ${m?.placa ?? ""} ${nombre}`.toLowerCase();
+}
+
+// "ROG Ally RC71L_RC71L" -> "ROG Ally"; "ROG Ally X RC72LA_RC72LA" -> "ROG Ally X"
+function limpiarModelo(producto: string): string {
+  return (producto || "")
+    .replace(/\s+[A-Z0-9][A-Z0-9_-]{4,}$/, "")
+    .trim();
+}
+
+function nombreMaquina(m: Maquina | null | undefined): string {
+  if (!m) return "";
+  const t = textoMaquina(m, "");
   if (
-    n.includes("rog") ||
-    n.includes("ally") ||
-    n.includes("asus") ||
-    n.includes("msi") ||
-    n.includes("claw") ||
-    n.includes("legion")
+    t.includes("valve") ||
+    t.includes("jupiter") ||
+    t.includes("galileo") ||
+    t.includes("steam deck")
   ) {
-    return <IconoPortatil size={lado} />;
+    return "Steam Deck";
   }
-  return <FaMicrochip size={lado} />;
+  if (t.includes("asustek") || t.includes("asus")) {
+    return limpiarModelo(m.producto) || limpiarModelo(m.placa) || "ROG Ally";
+  }
+  if (t.includes("micro-star") || t.includes("msi")) {
+    return limpiarModelo(m.producto) || limpiarModelo(m.placa) || "MSI Claw";
+  }
+  if (t.includes("lenovo") || t.includes("legion")) {
+    // Lenovo suele traer un codigo en product_name ("83E1"): mejor la placa.
+    return limpiarModelo(m.placa) || limpiarModelo(m.producto) || "Legion Go";
+  }
+  return limpiarModelo(m.producto) || limpiarModelo(m.placa);
+}
+
+function IconoMaquina(props: {
+  maquina?: Maquina | null;
+  nombre: string;
+  size?: number;
+}) {
+  const t = textoMaquina(props.maquina, props.nombre);
+  const lado = props.size ?? 17;
+  if (
+    t.includes("valve") ||
+    t.includes("jupiter") ||
+    t.includes("galileo") ||
+    t.includes("steam deck") ||
+    t.includes("deck controller")
+  ) {
+    return <SiSteamdeck size={lado} />;
+  }
+  if (
+    t.includes("asustek") ||
+    t.includes("asus") ||
+    t.includes("rog") ||
+    t.includes("ally")
+  ) {
+    return <SiAsus size={lado} />;
+  }
+  if (t.includes("micro-star") || t.includes("msi") || t.includes("claw")) {
+    return <SiMsi size={lado} />;
+  }
+  if (t.includes("lenovo") || t.includes("legion")) {
+    return <SiLenovo size={lado} />;
+  }
+  if (t.includes("xbox")) return <FaXbox size={lado} />;
+  return <IconoPortatil size={lado} />;
 }
 
 // --- tarjeta de accion (cuadrada, como las de los mandos) ------------------
@@ -1291,6 +1344,7 @@ function Content() {
   const cuadricula = est.mandos.length >= 2;
   const integradoNombre =
     est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
+  const maquinaNombre = nombreMaquina(est.maquina);
 
   // la MAC solo cuando hay mas de un mando del mismo tipo
   const repetidos = (clase: string) =>
@@ -1324,6 +1378,60 @@ function Content() {
   return (
     <>
       <style>{ESTILOS}</style>
+
+      {maquinaNombre ? (
+        <PanelSection>
+          <PanelSectionRow>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                width: "100%",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  minHeight: "24px",
+                  maxWidth: "100%",
+                  padding: "3px 9px",
+                  borderRadius: "999px",
+                  background: "rgba(255,255,255,0.04)",
+                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.10)",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    flex: "0 0 auto",
+                    color: C.azul,
+                  }}
+                >
+                  <IconoMaquina
+                    maquina={est.maquina}
+                    nombre={integradoNombre}
+                    size={13}
+                  />
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.72em",
+                    fontWeight: 650,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {maquinaNombre}
+                </span>
+              </div>
+            </div>
+          </PanelSectionRow>
+        </PanelSection>
+      ) : null}
 
       {!est.instalado || est.desactualizado || !est.hook ? (
         <PanelSection
@@ -1518,12 +1626,17 @@ function Content() {
           </div>
           <div className="ede-celda">
             <TarjetaAccion
-              icono={<IconoMaquina nombre={integradoNombre} />}
+              icono={
+                <IconoMaquina
+                  maquina={est.maquina}
+                  nombre={integradoNombre}
+                />
+              }
               anim="pop"
               titulo="Integrado"
-              detalle={`${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
-                est.integrado_auto ? " (auto)" : ""
-              }`}
+              detalle={`${maquinaNombre ? `${maquinaNombre} · ` : ""}${
+                INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO
+              }${est.integrado_auto ? " (auto)" : ""}`}
               onClick={() => ciclar("integrado")}
             />
           </div>
