@@ -624,6 +624,77 @@ function BotonAccion(props: {
   );
 }
 
+// --- tarjeta de accion (cuadrada, como las de los mandos) ------------------
+function TarjetaAccion(props: {
+  icono: ReactNode;
+  titulo: string;
+  detalle?: string;
+  color?: string;
+  onClick: () => void;
+}) {
+  const color = props.color ?? C.azul;
+  return (
+    <ButtonItem layout="below" onClick={props.onClick}>
+      <div
+        className="ede-tarjeta"
+        style={{
+          ...estiloTarjeta(false, color),
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "96px",
+          width: "100%",
+          padding: 0,
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            padding: "10px 6px",
+            width: "100%",
+          }}
+        >
+          <CirculoIcono color={color} lado={34}>
+            {props.icono}
+          </CirculoIcono>
+          <div style={{ fontSize: "0.68em", fontWeight: 700, lineHeight: 1.15 }}>
+            {props.titulo}
+          </div>
+          {props.detalle ? (
+            <div style={{ fontSize: "0.62em", opacity: 0.7, lineHeight: 1.15 }}>
+              {props.detalle}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </ButtonItem>
+  );
+}
+
+// --- rejilla de 2 columnas -------------------------------------------------
+function Rejilla(props: { children: ReactNode }) {
+  return (
+    <PanelSectionRow>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: "6px",
+          width: "100%",
+        }}
+      >
+        {props.children}
+      </div>
+    </PanelSectionRow>
+  );
+}
+
 // --- seccion colapsable ----------------------------------------------------
 function Seccion(props: {
   titulo: string;
@@ -1244,25 +1315,26 @@ function Content() {
         abierta={Boolean(abiertas.ajustes)}
         onToggle={() => toggle("ajustes")}
       >
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => ciclar("max")}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Mandos a configurar</span>
-              <span style={{ fontWeight: 700 }}>{p.JUGADORES_MAX}</span>
-            </div>
-          </ButtonItem>
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => ciclar("integrado")}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Mando integrado</span>
-              <span style={{ fontWeight: 700 }}>
-                {INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}
-                {est.integrado_auto ? " (auto)" : ""}
-              </span>
-            </div>
-          </ButtonItem>
-        </PanelSectionRow>
+        <Rejilla>
+          <div className="ede-celda">
+            <TarjetaAccion
+              icono={<FaGamepad size={17} />}
+              titulo="Mandos"
+              detalle={`${p.JUGADORES_MAX} jugadores`}
+              onClick={() => ciclar("max")}
+            />
+          </div>
+          <div className="ede-celda">
+            <TarjetaAccion
+              icono={<FaMicrochip size={17} />}
+              titulo="Integrado"
+              detalle={`${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
+                est.integrado_auto ? " (auto)" : ""
+              }`}
+              onClick={() => ciclar("integrado")}
+            />
+          </div>
+        </Rejilla>
       </Seccion>
 
       <Seccion
@@ -1272,27 +1344,34 @@ function Content() {
         abierta={Boolean(abiertas.avanzado)}
         onToggle={() => toggle("avanzado")}
       >
-        <PanelSectionRow>
-          <BotonAccion
-            icono={<FaCheck size={14} />}
-            texto="Aplicar ahora"
-            onClick={aplicar}
-          />
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <BotonAccion
-            icono={<FaUndo size={13} />}
-            texto="Restaurar todo"
-            onClick={restaurarTodo}
-          />
-        </PanelSectionRow>
-        <PanelSectionRow>
-          <BotonAccion
-            icono={<FaFileAlt size={13} />}
-            texto="Ver log"
-            onClick={verLog}
-          />
-        </PanelSectionRow>
+        <Rejilla>
+          <div className="ede-celda">
+            <TarjetaAccion
+              icono={<FaCheck size={17} />}
+              titulo="Aplicar"
+              detalle="Ahora"
+              onClick={aplicar}
+            />
+          </div>
+          <div className="ede-celda">
+            <TarjetaAccion
+              icono={<FaUndo size={16} />}
+              titulo="Restaurar"
+              detalle="Todo"
+              color={C.rojo}
+              onClick={restaurarTodo}
+            />
+          </div>
+          <div className="ede-celda">
+            <TarjetaAccion
+              icono={<FaFileAlt size={16} />}
+              titulo="Ver log"
+              detalle="log.txt"
+              color={C.gris}
+              onClick={verLog}
+            />
+          </div>
+        </Rejilla>
       </Seccion>
     </>
   );
