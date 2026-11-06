@@ -1426,7 +1426,7 @@ function Content() {
   const restaurarTodo = () => {
     showModal(
       <ConfirmModal
-        strTitle="Restaurar todo"
+        strTitle="Restaurar Eden"
         strDescription={
           "Se restaurara el qt-config.ini anterior a N.E.C.A, se quitaran las " +
           "preferencias del plugin y se desactivara el hook de ES-DE.\n\n" +
@@ -1749,7 +1749,7 @@ function Content() {
               icono={<FaUndo size={16} />}
               anim="giro"
               titulo="Restaurar"
-              detalle="Todo"
+              detalle="Eden"
               onClick={restaurarTodo}
             />
           </div>

@@ -3,18 +3,19 @@
 A [Decky](https://decky.xyz/) plugin that autoconfigures the controllers of the
 Nintendo emulators from the Steam Quick Access Menu (QAM): **[Eden](https://eden-emu.dev/)**
 (Switch), **Dolphin** (GameCube/Wii) and **Cemu** (Wii U). It sets **Player 1**,
-picks **how many DualSense controllers** to use and **what to do with the
-built-in controller**, and applies it when a game launches from
-[ES-DE](https://es-de.org/). No root.
+picks **how many controllers** to use and **what to do with the built-in
+controller**, and applies it when a game launches from [ES-DE](https://es-de.org/).
+No root.
 
 [![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-eca?label=release)](https://github.com/CeDiqqu/decky-eca/releases/latest)
 [![License](https://img.shields.io/github/license/CeDiqqu/decky-eca)](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE)
 
 [Español](https://github.com/CeDiqqu/decky-eca/blob/main/README.md) · **English**
 
-> **Status:** v1.0.0 (Nov 2, 2026), first public release. Tested on **ROG Xbox
-> Ally X** running SteamOS with a DualSense over Bluetooth. Maintained by
-> [CeDiqqu](https://github.com/CeDiqqu), with no fixed release cadence.
+> **Status:** v2.0.0 (Nov 6, 2026). First N.E.C.A release; it replaces E.C.A
+> 1.0.0. Tested on **ROG Xbox Ally X** running SteamOS with a DualSense over
+> Bluetooth. Maintained by [CeDiqqu](https://github.com/CeDiqqu), with no fixed
+> release cadence.
 
 Changes by version: [CHANGELOG.md](https://github.com/CeDiqqu/decky-eca/blob/main/CHANGELOG.md) (in Spanish).
 
@@ -22,41 +23,51 @@ Built for SteamOS handhelds with ES-DE (EmuDeck), not for Windows.
 
 ## Why N.E.C.A
 
-- **Player 1 is stored by MAC, not by port.** Steam can renumber ports between
-  sessions; N.E.C.A pins the exact controller.
-- **In your configuration, it only writes one marked block** at the end of
+- **Three emulators, one configuration.** Eden, Dolphin and Cemu get the right
+  controller when a game launches.
+- **Player 1 can be pinned by MAC**, not by port. Steam can renumber ports
+  between sessions; N.E.C.A pins the exact controller.
+- **Dolphin and Cemu only change the device**, not the bindings. They keep the
+  type, profile and mapping EmuDeck left in place.
+- **In the `.conf`, it only writes one marked block** at the end of
   `eden-autoconfig.conf`. The rest of the file, your templates and your backups
   stay untouched.
-- **It runs as `deck`, without root**, so Eden can still write its
-  `qt-config.ini`.
-- **It does not reimplement the logic**: the panel calls the `eden-autoconfig`
-  scripts, the same ones you can use from a terminal.
-- **It can be undone**: it restores the original `qt-config.ini`, removes the
-  block and disables the hook.
+- **It runs as `deck`, without root**, so the emulators can still write their
+  files.
+- **Automatic install and repair.** If the installed scripts are old or
+  incomplete, the plugin restores them on load.
+- **It disables Eden's controller applet** when applying, so Eden does not ask
+  for confirmation when the game starts.
 
 When **not** to use it: if you do not launch games from ES-DE (the hook lives
-there), if your handheld is not an ASUS model (the built-in controller pattern
-may need tuning), or if you need to pin more than one player by MAC.
+there), if your handheld is not an ASUS model (the built-in pattern may need
+tuning), or if you need to pin more than one player by MAC.
 
 ## Requirements
 
 - **Decky Loader** with `api_version: 1` (the plugin declares that value).
-- **SteamOS** on a handheld (tested on ROG Xbox Ally X). Windows is not
-  supported.
-- **Eden** (AppImage) with the `emudeck` profile at
-  `<config>/input/emudeck.ini`, created by EmuDeck. If you use another profile,
-  change `PERFIL` in `~/eden-autoconfig/eden-autoconfig.conf`.
+- **SteamOS** on a handheld. Windows is not supported.
+- **EmuDeck** with the configuration of the emulators you use:
+
+| ES-DE system | Emulator | Configuration N.E.C.A reads |
+|---|---|---|
+| `switch` | Eden (AppImage) | `<config>/eden/qt-config.ini` and the `emudeck` profile |
+| `gc`, `wii` | Dolphin | `GCPadNew.ini` and `WiimoteNew.ini` |
+| `wiiu` | Cemu | `controllerProfiles/controller0.xml` |
+
 - **ES-DE** with *Custom Event Scripts* enabled. The plugin expects ES-DE at
   `~/ES-DE` (EmuDeck's path); if it lives elsewhere, the hook is not installed
   automatically.
-- **Eden closed** before *Apply* or *Restore*. Apply refuses to run while Eden is
-  open; close it before restoring too, so it does not overwrite `qt-config.ini`
-  on exit.
+- **The emulator closed** before applying. The drivers refuse to write while
+  Eden, Dolphin or Cemu are running.
+- If Cemu lives in an unusual folder, set `CEMU_DIR` in
+  `~/eden-autoconfig/eden-autoconfig.conf`.
 - Optional: write access to `/dev/hidraw*` for vibration. If it is missing, the
   panel shows a diagnostic and everything else keeps working.
 
-The panel UI is in Spanish; the steps below show the labels exactly as they
-appear, with the English meaning in parentheses.
+> [!NOTE]
+> The panel UI is in Spanish. The steps below show its labels as they appear,
+> with the English meaning in parentheses.
 
 ## Installation
 
@@ -64,57 +75,63 @@ appear, with the English meaning in parentheses.
 2. On the handheld: **Decky → Developer → Install Plugin from ZIP**. It installs
    to `~/homebrew/plugins/NecaAutoconfig/`.
 
-   > **Coming from E.C.A?** Uninstall the previous plugin first (Decky →
-   > settings → plugins → E.C.A → uninstall). Your data is untouched:
-   > `~/eden-autoconfig`, templates, backups and the hook stay as they are.
-   > Installing without uninstalling leaves two panels.
-   update replaces the previous version).
-3. Open the panel in the Quick Access Menu and press **Instalar scripts**
-   (Install scripts) the first time. It copies the scripts to
-   `~/eden-autoconfig`, installs the hook in `~/ES-DE/scripts/game-start/` if that
-   folder exists, and checks that SDL responds.
+> [!WARNING]
+> **Coming from E.C.A?** Uninstall the previous plugin first (Decky → settings →
+> plugins → E.C.A → uninstall). Your data is untouched: `~/eden-autoconfig`,
+> templates, backups and the hook stay as they are. Installing without
+> uninstalling leaves two panels.
+
+3. Open the panel in the Quick Access Menu. The first time, press **Instalar
+   scripts** (Install scripts). It copies the scripts to `~/eden-autoconfig`,
+   installs the hook in `~/ES-DE/scripts/game-start/` if that folder exists and
+   checks that SDL responds. If the scripts are already installed and old or
+   incomplete, they are repaired on load.
 4. In ES-DE: **Other settings → Enable custom event scripts**.
 
-Check that **Estado** (Status) shows `scripts 1.0.0 · hook OK`. You can also
-check from a terminal:
+Check that the chips show **v2.0.0** and **hook OK**. You can also check from a
+terminal:
 
 ```bash
 ~/eden-autoconfig/eden-autoconfig.sh --status
+~/eden-autoconfig/eden-autoconfig.sh --sistema gc --status
+~/eden-autoconfig/eden-autoconfig.sh --sistema wiiu --status
 ```
 
-It should find Eden and the `emudeck` profile and report `Eden en ejecucion: no`.
+The command should find the emulator and end with `Eden en ejecucion: no` or the
+equivalent Dolphin/Cemu state.
 
-To update, install the new zip; there is no need to uninstall the old version
-first.
+To update N.E.C.A, install the new zip; there is no need to uninstall. If you
+come from E.C.A, uninstall the old plugin first.
 
 ## Quick start
 
-1. Connect the controllers and open the panel: it refreshes on its own.
-2. With **a single DualSense**, it is set as the primary controller
-   automatically and its card gets a **gold ★**. If a primary is already set, it
-   stays primary while it is connected.
-3. To change the primary controller, **double-tap** another card (less than
-   1.5 s apart). A single tap only vibrates, so you cannot change it by accident.
-4. Set **how many DualSense controllers** to use (1 to 4) and what to do with the
-   **built-in controller** under **Ajustes** (Settings).
-5. **Avanzado → Aplicar ahora** (Advanced → Apply now) writes the configuration.
-   The badges on the cards show which player each controller would get before
-   you apply; nothing is written until then.
-
-**Estado** (Status) is a fixed row with the scenario, the controllers, the
-version and the hook state. **Ajustes** (Settings) and **Avanzado** (Advanced)
-are collapsed: press A on their header to open them. **Mandos** (Controllers) is
-always open, and **Recargar mandos** (Reload controllers) sits right below the
-cards.
+1. Connect the controllers and open the panel. When the controller count
+   changes, it refreshes on its own with a 5 s poll.
+2. The chips at the top show the machine, the number of controllers, the version
+   and the hook state.
+3. The **Mandos** (Controllers) button with four slots cycles the player limit
+   (1 to 4).
+4. The **Integrado** (Built-in) card cycles **Player 1 → Last player → Off**.
+   Without a manual choice, the built-in controller is Player 1 when there are no
+   external controllers, goes last when there is at least one, and is disabled
+   when there is no room.
+5. To pin a specific controller as Player 1, **double-tap** its card (less than
+   1.5 s apart). The **★** marks the current Player 1.
+6. The **Asignación** (Assignment) icon in the **Mandos** header shows the last
+   Cemu and Dolphin plan. **Comprobar ahora** (Check now) recalculates it without
+   writing anything.
+7. **Ajustes** (Settings) contains **Aplicar** (Apply, writes Eden),
+   **Restaurar** (Restore, Eden) and **Ver log** (View log). Dolphin and Cemu are
+   applied when the game launches, or manually with `--sistema gc` and
+   `--sistema wiiu`.
 
 Each card shows the family **icon** (PlayStation, Xbox, Switch, Steam or
-built-in), the **connection** (Bluetooth, USB, Internal or Virtual), and, only
-when there are several controllers of the same type, a **MAC** suffix to tell
-them apart. Unknown controllers also show their name.
+built-in), the **connection** (Bluetooth, USB, Internal or Virtual) and the short
+**MAC** whenever the controller reports it. Unknown controllers also show their
+name.
 
-Short notices are drawn inside the panel and disappear after 5 s. Long errors
-(for example, the `hidraw` diagnostic) open in a window so you can read or copy
-them.
+Short notices are drawn inside the panel and disappear after 5 s. Long errors,
+such as the `hidraw` diagnostic, open in a window so you can read or copy them.
 
 ## Identifying a controller by vibration
 
@@ -122,9 +139,8 @@ them.
   card flashes cyan.
 - **Two taps in a row** (less than 1.5 s apart): that controller becomes the
   primary one.
-- **DualSense only**: it is the only implemented protocol. The built-in
-  controller does not vibrate; use another method to identify other controller
-  types.
+- **DualSense only**: the built-in controller does not vibrate and other
+  controller families are not supported by this protocol.
 - The controller is located by its MAC (`uniq` or the `uevent`'s `HID_UNIQ`). If
   the system does not expose it, the only connected DualSense or the port order
   is used. If that fails, the panel shows a diagnostic of
@@ -134,10 +150,19 @@ them.
 
 ## What it writes (and how to undo it)
 
-Once the scripts are installed, the panel only writes two things on your system:
+Once the scripts are installed, the panel only writes two things:
 
 1. A **managed block** at the end of `~/eden-autoconfig/eden-autoconfig.conf`.
 2. Its private state in `~/.config/eden-autoconfig-decky/`.
+
+The drivers, when applying or launching, write only each emulator's
+configuration:
+
+| Emulator | File | What it changes |
+|---|---|---|
+| Eden | `qt-config.ini` | controls and controller applet |
+| Dolphin | `GCPadNew.ini`, `WiimoteNew.ini` | only the `Device` line |
+| Cemu | `controllerProfiles/controllerN.xml` | only the device |
 
 The block is replaced as a whole; the rest of the `.conf` is untouched. Example:
 
@@ -145,7 +170,8 @@ The block is replaced as a whole; the rest of the `.conf` is untouched. Example:
 # >>> eden-autoconfig-decky >>>
 P1_SERIE="4c:b9:9b:e9:bc:26"
 JUGADORES_MAX=2
-ORDEN_INTEGRADO="ignorar"
+ORDEN_INTEGRADO="ultimo"
+INTEGRADO_MANUAL="si"
 ORDEN_DUALSENSE="mac"
 RETENCION_BACKUPS=10
 # <<< eden-autoconfig-decky <<<
@@ -157,34 +183,37 @@ RETENCION_BACKUPS=10
   `~/.config/eden-autoconfig-decky/` before the block is replaced.
 - If you delete the block, the `.conf` goes back to your previous values.
   Deleting the block does not touch `qt-config.ini`.
+- Backups go to `~/eden-autoconfig/backups/`: `qt-config.ini.*` for Eden,
+  `dolphin/GCPadNew.ini.*` and `dolphin/WiimoteNew.ini.*` for Dolphin, and
+  `cemu/controllerN.xml.*` for Cemu. The 10 most recent copies are kept per
+  file. Eden's original lives separately in
+  `~/eden-autoconfig/stock/qt-config.ini`.
 
-**Restaurar todo** (Restore everything) under **Avanzado** (Advanced) returns the
-device to its pre-N.E.C.A state. Eden must be closed:
+**Restaurar** (Restore) under **Ajustes** returns Eden to its pre-N.E.C.A state:
 
-1. It restores the original `qt-config.ini`, saved the first time in
-   `~/eden-autoconfig/stock/qt-config.ini` (that file is never deleted).
+1. It restores the original `qt-config.ini` from `stock/`.
 2. It removes the preferences block from the `.conf`.
 3. It disables the ES-DE hook (moves it out of
    `~/ES-DE/scripts/game-start/`).
 
-Before changing anything, it saves a copy of the current state in
-`~/eden-autoconfig/backups/`. After that, the panel shows **Reactivar hook**
-(Reactivate hook) to install the hook again. If you need to undo the restore:
+Before changing anything, it saves a copy of the current state in `backups/`.
+After that, the panel shows **Reactivar hook** (Reactivate hook) to install the
+hook again.
+
+Dolphin and Cemu are not restored by that button. Use their backups:
 
 ```bash
-~/eden-autoconfig/eden-autoconfig.sh --list-backups
-~/eden-autoconfig/eden-autoconfig.sh --restore latest
+~/eden-autoconfig/eden-autoconfig.sh --sistema gc --restore latest
+~/eden-autoconfig/eden-autoconfig.sh --sistema wiiu --restore latest
 ```
-
-The plugin sets `RETENCION_BACKUPS=10`: it keeps the **10 most recent**
-`qt-config.ini` backups and deletes the rest on each apply. The original in
-`stock/` lives separately and is not part of that rotation.
 
 ### Uninstall
 
-1. **Avanzado → Restaurar todo** (Advanced → Restore everything) to put the
-   `qt-config.ini` back and remove the hook.
-2. Remove the plugin from Decky.
+1. **Ajustes → Restaurar** (Settings → Restore) to put Eden back and remove the
+   hook.
+2. If you also want to undo Dolphin and Cemu, use the `--restore` commands
+   above.
+3. Remove the plugin from Decky.
 
 If you uninstall without restoring, the hook remains in
 `~/ES-DE/scripts/game-start/` and keeps applying the `.conf` even though the
@@ -193,25 +222,28 @@ templates, backups and `.conf` live there.
 
 ## Known limits
 
+- **Apply from the panel only writes Eden.** Dolphin and Cemu are applied when
+  the game launches from ES-DE or with `--sistema gc|wiiu`.
+- **Restore from the panel only affects Eden.** Dolphin and Cemu are restored
+  with per-system `--restore`.
 - Only **one specific controller can be pinned as Player 1** (`P1_SERIE`). The
-  rest follow the chosen order (connection or MAC). There is no “P2 = this exact
-  controller”.
+  rest follow the chosen order (connection or MAC).
 - If a controller does not report a serial (some virtual pads), it cannot be
   pinned; the panel tells you.
-- The **built-in controller** is not pinned by serial: it is set as Player 1
-  with **Ajustes → Mando integrado** (Settings → Built-in controller).
-- With **4 DualSense** controllers connected there is no room left: the built-in
-  controller is automatically set to **not used** and cannot be changed until you
-  disconnect one. When you do, the panel restores your previous choice the next
-  time it opens.
-- The automatic built-in change happens when the **panel opens** or when you
-  **Apply**. If you connect the 4th DualSense and launch a game without opening
-  the panel, the hook applies what was saved; opening the panel once fixes it.
+- The **built-in controller** is not pinned by serial. It is controlled by the
+  **Integrado** card and by `INTEGRADO_MANUAL`.
+- **`JUGADORES_MAX` is the total number of players (1 to 4)**, including the
+  built-in controller. If you force the built-in controller as Player 1 with four
+  DualSense controllers, one DualSense is left out.
+- The automatic built-in adjustment is recalculated when the **panel opens** or
+  when you **Apply**. The hook uses the saved `.conf`.
 - With **Steam Input enabled** for ES-DE, Eden sees Valve's virtual pads. The
-  panel detects that scenario, but the exact Player N = DualSense N mapping is
-  only reliable with Steam Input disabled for ES-DE.
-- Tested only on **ROG Xbox Ally X**. On other handhelds, `INTEGRADO_PATRON` may
-  need adjustment in the `.conf`.
+  exact Player N = DualSense N mapping is only reliable with Steam Input
+  disabled for ES-DE.
+- **Dolphin and Cemu do not create bindings**: they only change the device. If
+  EmuDeck did not leave a controller configuration, there is nothing to assign.
+- Tested on **ROG Xbox Ally X**. On other handhelds, `INTEGRADO_PATRON` may need
+  adjustment in the `.conf`.
 
 ## Development
 
@@ -221,24 +253,23 @@ python3 test_backend.py   # backend tests
 bash build.sh             # sync scripts/ + build + package the zip
 ```
 
-`build.sh` requires Node 20+ and Python 3. The zip contains a single root
-folder, `NecaAutoconfig/`.
+`build.sh` requires Node 20+ and Python 3. The zip contains a single root folder,
+`NecaAutoconfig/`, and the script bundle is versioned **2.0.0**.
 
 - `scripts/` is a **generated copy** of `eden_controller/` (the source of truth).
   Do not edit it there; change `eden_controller/` and copy with `build.sh`.
-- `scripts/VERSION` stores the version and hash; the panel compares the hash
-  with the installed copy and warns when it is out of date.
+- `scripts/VERSION` stores the version and hash, without a date; the panel
+  compares the hash with the installed copy and warns when it is out of date.
 - The backend (`main.py`) does not reimplement anything: it runs the installed
-  scripts. It can be tested without a console using a fake `HOME` and
-  `EDEN_FAKE_SDL`.
+  scripts, auto-installs when files are missing and reads the Cemu/Dolphin plans.
+  It can be tested without a console using a fake `HOME` and `EDEN_FAKE_SDL`.
 - SDL, GUID CRC, templates and diagnostics:
   [`eden_controller` README](https://github.com/CeDiqqu/decky-eca/blob/main/eden_controller/README.md)
   (in Spanish).
 
-## License
+---
 
 BSD-3-Clause. See [LICENSE](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE).
-
 If something does not add up, open an
 [issue](https://github.com/CeDiqqu/decky-eca/issues) with the log from
 `~/eden-autoconfig/log.txt`.
