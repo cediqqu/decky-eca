@@ -167,8 +167,8 @@ async def main():
     princ = [m for m in est["mandos"] if m["principal"]]
     check("un unico principal",
           len(princ) == 1 and princ[0]["serie"] == "4c:b9:9b:e9:bc:26", princ)
-    check("elegir un externo aparta el integrado",
-          est["prefs"]["ORDEN_INTEGRADO"] == "ignorar", est["prefs"])
+    check("elegir un externo manda el integrado al final",
+          est["prefs"]["ORDEN_INTEGRADO"] == "ultimo", est["prefs"])
 
     estado_dir = os.path.join(home, ".config", "eden-autoconfig-decky")
     check("backup del .conf fuera del proyecto",

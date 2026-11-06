@@ -794,10 +794,12 @@ function TarjetaIntegrado(props: {
 }) {
   const detalle =
     props.modo === "ignorar"
-      ? "Desactivado"
-      : props.jugador
-        ? `Jugador ${props.jugador}`
-        : "Apagado";
+      ? "Apagado"
+      : !props.jugador
+        ? "Apagado"
+        : props.modo === "primero"
+          ? "Jugador 1"
+          : "Último jugador";
   return (
     <TarjetaAccion
       color={C.naranja}
@@ -1188,79 +1190,6 @@ function VentanaAsignacion(props: {
   );
 }
 
-// ---------------------------------------------------------------------------
-//  Elegir hueco del mando integrado
-// ---------------------------------------------------------------------------
-const OPCIONES_INTEGRADO: [string, string][] = [
-  ["primero", "Jugador 1"],
-  ["ultimo", "Último jugador"],
-  ["ignorar", "Desactivado"],
-];
-
-function VentanaIntegrado(props: {
-  modo: string;
-  onElegir: (modo: string) => void;
-  onCerrar: () => void;
-}) {
-  return (
-    <ModalRoot strTitle="Mando integrado" bAllowFullSize onCancel={props.onCerrar}>
-      <DialogBody>
-        <DialogBodyText>¿Dónde quieres el mando integrado?</DialogBodyText>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            marginTop: "10px",
-          }}
-        >
-          {OPCIONES_INTEGRADO.map(([valor, titulo]) => (
-            <DialogButton
-              key={valor}
-              onClick={() => props.onElegir(valor)}
-              style={{ width: "100%" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                }}
-              >
-                <span style={{ fontWeight: 700 }}>{titulo}</span>
-                {props.modo === valor ? (
-                  <span style={{ color: C.verde, display: "flex" }}>
-                    <FaCheck size={12} />
-                  </span>
-                ) : null}
-              </div>
-            </DialogButton>
-          ))}
-        </div>
-      </DialogBody>
-      <DialogFooter>
-        <DialogButtonPrimary onClick={props.onCerrar}>Cerrar</DialogButtonPrimary>
-      </DialogFooter>
-    </ModalRoot>
-  );
-}
-
-function abrirIntegrado(modo: string, onElegir: (m: string) => void) {
-  const cierre = { f: () => {} };
-  const res = showModal(
-    <VentanaIntegrado
-      modo={modo}
-      onElegir={(v) => {
-        cierre.f();
-        onElegir(v);
-      }}
-      onCerrar={() => cierre.f()}
-    />
-  );
-  cierre.f = res.Close;
-}
-
 function abrirAsignacion(
   planes: Record<string, Plan | null>,
   onNuevo: (e: Estado) => void
@@ -1411,6 +1340,13 @@ function Content() {
       setEst(nuevo);
       if (nuevo.aviso) avisar(nuevo.aviso);
     });
+
+  // la tarjeta cicla: Jugador 1 -> Ultimo jugador -> Apagado
+  const siguienteIntegrado = () => {
+    const orden = ["primero", "ultimo", "ignorar"];
+    const i = orden.indexOf(p.ORDEN_INTEGRADO);
+    return orden[(i + 1) % orden.length];
+  };
 
   const aplicar = () =>
     conBloqueo(async () => {
@@ -1685,9 +1621,7 @@ function Content() {
                     }
                     jugador={integrado?.jugador ?? null}
                     modo={p.ORDEN_INTEGRADO}
-                    onClick={() =>
-                      abrirIntegrado(p.ORDEN_INTEGRADO, elegirIntegrado)
-                    }
+                    onClick={() => elegirIntegrado(siguienteIntegrado())}
                   />
                 </div>
               ) : null}

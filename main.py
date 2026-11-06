@@ -899,8 +899,9 @@ class Plugin:
             prefs["P1_SERIE"] = ""
         else:
             prefs["P1_SERIE"] = serie
-            # al elegir un mando externo como Player 1, el integrado se aparta
-            prefs["ORDEN_INTEGRADO"] = "ignorar"
+            # al elegir un mando externo como Player 1, el integrado pasa a ultimo
+            if prefs["ORDEN_INTEGRADO"] == "primero":
+                prefs["ORDEN_INTEGRADO"] = "ultimo"
         ok, msg = _escribir_prefs(prefs)
         estado = await self.estado()
         if not ok:

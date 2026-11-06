@@ -600,10 +600,12 @@ function ChipEstado(props) {
 // --- tarjeta del mando integrado -------------------------------------------
 function TarjetaIntegrado(props) {
     const detalle = props.modo === "ignorar"
-        ? "Desactivado"
-        : props.jugador
-            ? `Jugador ${props.jugador}`
-            : "Apagado";
+        ? "Apagado"
+        : !props.jugador
+            ? "Apagado"
+            : props.modo === "primero"
+                ? "Jugador 1"
+                : "Último jugador";
     return (SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: props.icono, anim: "pop", titulo: "Integrado", detalle: detalle, onClick: props.onClick }));
 }
 function IconoTarjeta(props) {
@@ -745,35 +747,6 @@ function VentanaAsignacion(props) {
                             lineHeight: 1.4,
                         }, children: [bloque("wiiu", "Cemu (Wii U)"), bloque("dolphin", "Dolphin (GC/Wii)"), nota ? (SP_JSX.jsx("div", { style: { marginTop: "6px", opacity: 0.75, fontSize: "0.9em" }, children: nota })) : null] }) }) }), SP_JSX.jsxs(DFL.DialogFooter, { children: [SP_JSX.jsx(DFL.DialogButton, { disabled: ocupado, onClick: () => void comprobar(), children: ocupado ? "Comprobando…" : "Comprobar ahora" }), SP_JSX.jsx(DFL.DialogButtonPrimary, { onClick: props.onCerrar, children: "Cerrar" })] })] }));
 }
-// ---------------------------------------------------------------------------
-//  Elegir hueco del mando integrado
-// ---------------------------------------------------------------------------
-const OPCIONES_INTEGRADO = [
-    ["primero", "Jugador 1"],
-    ["ultimo", "Último jugador"],
-    ["ignorar", "Desactivado"],
-];
-function VentanaIntegrado(props) {
-    return (SP_JSX.jsxs(DFL.ModalRoot, { strTitle: "Mando integrado", bAllowFullSize: true, onCancel: props.onCerrar, children: [SP_JSX.jsxs(DFL.DialogBody, { children: [SP_JSX.jsx(DFL.DialogBodyText, { children: "\u00BFD\u00F3nde quieres el mando integrado?" }), SP_JSX.jsx("div", { style: {
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "6px",
-                            marginTop: "10px",
-                        }, children: OPCIONES_INTEGRADO.map(([valor, titulo]) => (SP_JSX.jsx(DFL.DialogButton, { onClick: () => props.onElegir(valor), style: { width: "100%" }, children: SP_JSX.jsxs("div", { style: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    width: "100%",
-                                }, children: [SP_JSX.jsx("span", { style: { fontWeight: 700 }, children: titulo }), props.modo === valor ? (SP_JSX.jsx("span", { style: { color: C.verde, display: "flex" }, children: SP_JSX.jsx(FaCheck, { size: 12 }) })) : null] }) }, valor))) })] }), SP_JSX.jsx(DFL.DialogFooter, { children: SP_JSX.jsx(DFL.DialogButtonPrimary, { onClick: props.onCerrar, children: "Cerrar" }) })] }));
-}
-function abrirIntegrado(modo, onElegir) {
-    const cierre = { f: () => { } };
-    const res = DFL.showModal(SP_JSX.jsx(VentanaIntegrado, { modo: modo, onElegir: (v) => {
-            cierre.f();
-            onElegir(v);
-        }, onCerrar: () => cierre.f() }));
-    cierre.f = res.Close;
-}
 function abrirAsignacion(planes, onNuevo) {
     const cierre = { f: () => { } };
     const res = DFL.showModal(SP_JSX.jsx(VentanaAsignacion, { planes: planes, onCerrar: () => cierre.f(), onNuevo: onNuevo }));
@@ -900,6 +873,12 @@ function Content() {
         if (nuevo.aviso)
             avisar(nuevo.aviso);
     });
+    // la tarjeta cicla: Jugador 1 -> Ultimo jugador -> Apagado
+    const siguienteIntegrado = () => {
+        const orden = ["primero", "ultimo", "ignorar"];
+        const i = orden.indexOf(p.ORDEN_INTEGRADO);
+        return orden[(i + 1) % orden.length];
+    };
     const aplicar = () => conBloqueo(async () => {
         const r = await call("aplicar");
         abrirVentana(`Aplicar: ${r.mensaje ?? "salida " + r.exit}`, r.salida);
@@ -995,7 +974,7 @@ function Content() {
                                         maxWidth: "100%",
                                         overflow: "hidden",
                                         borderRadius: "16px",
-                                    }, children: SP_JSX.jsx(TarjetaIntegrado, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), jugador: integrado?.jugador ?? null, modo: p.ORDEN_INTEGRADO, onClick: () => abrirIntegrado(p.ORDEN_INTEGRADO, elegirIntegrado) }) })) : null, externos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
+                                    }, children: SP_JSX.jsx(TarjetaIntegrado, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), jugador: integrado?.jugador ?? null, modo: p.ORDEN_INTEGRADO, onClick: () => elegirIntegrado(siguienteIntegrado()) }) })) : null, externos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
                                         minWidth: 0,
                                         maxWidth: "100%",
                                         overflow: "hidden",
