@@ -450,7 +450,7 @@ c_cmd_aplicar() {
 }
 
 c_cmd_restore() {
-    local cual="${1:-latest}" bk f origen dir
+    local cual="${1:-latest}" bk origen dir
     bk="$(c_backups)"
     [ -d "$bk" ] || { c_err "no hay copias de Cemu"; return 1; }
     dir="$(c_dir)" || { c_err "no encuentro la configuracion de Cemu"; return 4; }

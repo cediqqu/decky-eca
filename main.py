@@ -985,7 +985,7 @@ class Plugin:
         return estado
 
     async def ciclar(self, clave):
-        """Cicla un ajuste: 'max' | 'integrado' | 'orden'."""
+        """Cicla un ajuste: 'max' | 'integrado'."""
         if clave == "integrado":
             actual = await self.estado()
             if actual.get("integrado_auto"):
@@ -1016,9 +1016,6 @@ class Plugin:
             n = int(prefs["JUGADORES_MAX"])
             prefs["JUGADORES_MAX"] = str(1 if n >= 4 else n + 1)
 
-        elif clave == "orden":
-            i = ORDENES.index(prefs["ORDEN_DUALSENSE"])
-            prefs["ORDEN_DUALSENSE"] = ORDENES[(i + 1) % len(ORDENES)]
 
 
         else:

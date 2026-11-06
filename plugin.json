@@ -8,10 +8,14 @@
       "controller",
       "emulation",
       "eden",
+      "dolphin",
+      "cemu",
       "es-de",
-      "switch"
+      "switch",
+      "wiiu",
+      "gamecube"
     ],
-    "description": "E.C.A (Eden Control Autoconfig): detecta los mandos de Eden, elige cual es el principal y aplica la configuracion antes de lanzar el juego. Sin root y sin tocar tus scripts.",
+    "description": "E.C.A (Eden Control Autoconfig): autoconfigura los mandos de Eden (Switch), Dolphin (GameCube/Wii) y Cemu (Wii U) antes de lanzar el juego. Sin root y sin tocar tus scripts.",
     "image": "https://opengraph.githubassets.com/1/CeDiqqu/decky-eca"
   }
 }

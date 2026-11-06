@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import {
-  ButtonItem,
+  Focusable,
   ConfirmModal,
   DialogBody,
   DialogBodyText,
@@ -63,7 +63,6 @@ type Prefs = {
   P1_SERIE: string;
   JUGADORES_MAX: string;
   ORDEN_INTEGRADO: string;
-  ORDEN_DUALSENSE: string;
 };
 
 type Maquina = { vendor: string; producto: string; placa: string };
@@ -215,21 +214,23 @@ const ESTILOS = `
   to   { opacity: 1; transform: none; }
 }
 .ede-estrella { animation: ede-latido 2.6s ease-in-out infinite; }
-/* el boton de Steam no pinta nada: solo se ve la tarjeta de dentro */
-.ede-boton > div,
-.ede-celda > div {
+/* el boton no pinta nada: solo se ve la tarjeta de dentro */
+.ede-boton, .ede-cab {
   padding: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 16px !important;
+  width: 100%;
 }
-.ede-boton > div:hover,
-.ede-boton > div.gpfocus {
-  background: transparent !important;
-  box-shadow: none !important;
+/* foco: solo el borde (sin fondo blanco de Steam) */
+.ede-foco-cab {
+  border-radius: 10px !important;
+  box-shadow: 0 0 0 1px var(--ede-acento, #0AB9E6),
+              0 0 10px var(--ede-acento-halo, rgba(10,185,230,0.45)) !important;
 }
 /* --- tarjetas: foco y micro-animaciones (estilo PdC) --- */
 .ede-tarjeta { transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease; }
+.ede-foco .ede-tarjeta,
 .ede-panel .gpfocus .ede-tarjeta,
 .ede-celda:hover .ede-tarjeta {
   border-color: var(--ede-acento, #0AB9E6) !important;
@@ -239,12 +240,18 @@ const ESTILOS = `
   transform: scale(1.02);
 }
 .ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
+.ede-foco .ede-icono-tile,
 .ede-panel .gpfocus .ede-icono-tile { transform: scale(1.08); filter: brightness(1.12); }
 .ede-icono-caja { display: inline-flex; align-items: center; justify-content: center; transition: box-shadow 160ms ease; }
+.ede-foco .ede-icono-caja,
 .ede-panel .gpfocus .ede-icono-caja { box-shadow: 0 0 12px var(--ede-glow, rgba(10,185,230,0.55)); }
+.ede-foco .ede-anim-pop,
 .ede-panel .gpfocus .ede-anim-pop { animation: ede-icono-pop 420ms cubic-bezier(.2,.8,.2,1) both; }
+.ede-foco .ede-anim-giro,
 .ede-panel .gpfocus .ede-anim-giro { animation: ede-icono-giro 480ms ease-out both; }
+.ede-foco .ede-anim-latido,
 .ede-panel .gpfocus .ede-anim-latido { animation: ede-icono-latido 460ms ease-out both; }
+.ede-foco .ede-anim-barrido,
 .ede-panel .gpfocus .ede-anim-barrido { animation: ede-icono-barrido 380ms ease-out both; }
 @keyframes ede-icono-pop { 0% { transform: scale(.82); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
@@ -266,7 +273,13 @@ const ESTILOS = `
 @media (prefers-reduced-motion: reduce) {
   .ede-slot.pulso { animation: none; }
   .ede-tarjeta, .ede-icono-tile, .ede-icono-caja { transition: none; }
+  .ede-foco .ede-tarjeta,
   .ede-panel .gpfocus .ede-tarjeta { transform: none; }
+  .ede-foco .ede-icono-tile,
+  .ede-foco .ede-anim-pop,
+  .ede-foco .ede-anim-giro,
+  .ede-foco .ede-anim-latido,
+  .ede-foco .ede-anim-barrido,
   .ede-panel .gpfocus .ede-icono-tile,
   .ede-panel .gpfocus .ede-anim-pop,
   .ede-panel .gpfocus .ede-anim-giro,
@@ -657,15 +670,20 @@ function MandoCuadrado(props: {
   );
 }
 
-// Envoltorio comun: quita el fondo/padding que pone Steam al ButtonItem y
-// deja solo la tarjeta. Asi todos los botones se ven igual.
+// Envoltorio comun: un Focusable sin nada de Steam (sin fondo ni anillo) y
+// dentro la tarjeta. Asi todos los botones se ven igual y el foco es el borde.
 function BotonTarjeta(props: { onClick: () => void; children: ReactNode }) {
   return (
-    <div className="ede-boton">
-      <ButtonItem layout="below" onClick={props.onClick}>
-        {props.children}
-      </ButtonItem>
-    </div>
+    <Focusable
+      className="ede-boton"
+      focusClassName="ede-foco"
+      noFocusRing
+      onActivate={props.onClick}
+      onClick={props.onClick}
+      style={{ width: "100%", padding: 0, background: "transparent" }}
+    >
+      {props.children}
+    </Focusable>
   );
 }
 
@@ -864,7 +882,7 @@ function IconoTarjeta(props: {
 }) {
   return (
     <span className="ede-icono-tile">
-      <span className={`ede-icono-anim ede-anim-${props.anim ?? "pop"}`}>
+      <span className={`ede-anim-${props.anim ?? "pop"}`}>
         <span
           className="ede-icono-caja"
           style={
@@ -1033,9 +1051,16 @@ function Seccion(props: {
     <PanelSection>
       <PanelSectionRow>
         {props.onToggle ? (
-          <ButtonItem layout="below" onClick={props.onToggle}>
+          <Focusable
+            className="ede-cab"
+            focusClassName="ede-foco-cab"
+            noFocusRing
+            onActivate={props.onToggle}
+            onClick={props.onToggle}
+            style={{ width: "100%", padding: 0, background: "transparent" }}
+          >
             {cabecera}
-          </ButtonItem>
+          </Focusable>
         ) : (
           cabecera
         )}
@@ -1048,7 +1073,7 @@ function Seccion(props: {
         }}
       />
       {props.abierta ? (
-        <div className="ede-aparecer ede-zona">{props.children}</div>
+        <div className="ede-aparecer">{props.children}</div>
       ) : null}
     </PanelSection>
   );
@@ -1461,10 +1486,6 @@ function Content() {
     return trozos.length ? trozos.join(" · ") : "sin datos";
   })();
 
-  const resumenAjustes = `${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
-    est.integrado_auto ? " (auto)" : ""
-  }`;
-
   return (
     <div
       className="ede-panel"
@@ -1476,7 +1497,6 @@ function Content() {
       }
     >
       <style>{ESTILOS}</style>
-
 
       {!est.instalado || est.desactualizado || !est.hook ? (
         <PanelSection
@@ -1511,14 +1531,12 @@ function Content() {
 
       {est.esde === false ? (
         <PanelSection>
-          {est.esde === false ? (
-            <PanelSectionRow>
-              <Aviso tono="atencion">
-                ES-DE: activa «Other settings → Enable custom event scripts». Sin
-                eso no se aplica al lanzar el juego.
-              </Aviso>
-            </PanelSectionRow>
-          ) : null}
+          <PanelSectionRow>
+            <Aviso tono="atencion">
+              ES-DE: activa «Other settings → Enable custom event scripts». Sin
+              eso no se aplica al lanzar el juego.
+            </Aviso>
+          </PanelSectionRow>
         </PanelSection>
       ) : null}
 
@@ -1527,53 +1545,43 @@ function Content() {
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              gap: "7px",
+              flexWrap: "wrap",
+              gap: "6px",
               width: "100%",
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: "0.8em" }}>Estado</div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "6px",
-                width: "100%",
-              }}
-            >
-              {maquinaNombre ? (
-                <ChipEstado
-                  color={acento}
-                  icono={
-                    <IconoMaquina
-                      maquina={est.maquina}
-                      nombre={integradoNombre}
-                      size={12}
-                    />
-                  }
-                  texto={maquinaNombre}
-                />
-              ) : null}
+            {maquinaNombre ? (
               <ChipEstado
-                color={C.azul}
-                icono={<FaGamepad size={11} />}
-                texto={`${est.mandos.length} ${
-                  est.mandos.length === 1 ? "mando" : "mandos"
-                }`}
-              />
-              <ChipEstado
-                color={C.violeta}
-                icono={<FaFileAlt size={11} />}
-                texto={`v${est.version}`}
-              />
-              <ChipEstado
-                color={est.hook ? C.verde : C.rojo}
+                color={acento}
                 icono={
-                  est.hook ? <FaCheck size={11} /> : <FaBan size={11} />
+                  <IconoMaquina
+                    maquina={est.maquina}
+                    nombre={integradoNombre}
+                    size={12}
+                  />
                 }
-                texto={est.hook ? "hook OK" : "sin hook"}
+                texto={maquinaNombre}
               />
-            </div>
+            ) : null}
+            <ChipEstado
+              color={C.azul}
+              icono={<FaGamepad size={11} />}
+              texto={`${est.mandos.length} ${
+                est.mandos.length === 1 ? "mando" : "mandos"
+              }`}
+            />
+            <ChipEstado
+              color={C.violeta}
+              icono={<FaFileAlt size={11} />}
+              texto={`v${est.version}`}
+            />
+            <ChipEstado
+              color={est.hook ? C.verde : C.rojo}
+              icono={
+                est.hook ? <FaCheck size={11} /> : <FaBan size={11} />
+              }
+              texto={est.hook ? "hook OK" : "sin hook"}
+            />
           </div>
         </PanelSectionRow>
       </PanelSection>
@@ -1734,7 +1742,6 @@ function Content() {
         titulo="Ajustes"
         color={C.violeta}
         icono={<FaSlidersH size={12} />}
-        resumen={resumenAjustes}
         abierta={Boolean(abiertas.ajustes)}
         onToggle={() => toggle("ajustes")}
       >

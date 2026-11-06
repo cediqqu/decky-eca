@@ -200,9 +200,6 @@ async def main():
     est = await mod.Plugin().ciclar("integrado")
     check("integrado -> ignorar", est["prefs"]["ORDEN_INTEGRADO"] == "ignorar")
 
-    est = await mod.Plugin().ciclar("orden")
-    check("orden -> mac", est["prefs"]["ORDEN_DUALSENSE"] == "mac")
-
     est = await mod.Plugin().ciclar("clave-que-no-existe")
     check("clave desconocida no rompe", est["ok"] is True)
 
