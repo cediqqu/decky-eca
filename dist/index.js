@@ -659,10 +659,6 @@ function TarjetaAccion(props) {
                     width: "100%",
                 }, children: [SP_JSX.jsx(IconoTarjeta, { icono: props.icono, color: color, anim: props.anim }), SP_JSX.jsx("div", { style: { fontSize: "0.7em", fontWeight: 700, lineHeight: 1.15 }, children: props.titulo }), props.detalle ? (SP_JSX.jsx("div", { style: { fontSize: "0.62em", opacity: 0.7, lineHeight: 1.15 }, children: props.detalle })) : null] }) }) }));
 }
-// --- tarjeta ancha (icono a la izquierda, como el menu de PdC) --------------
-function TarjetaFila(props) {
-    return (SP_JSX.jsx(TarjetaBase, { icono: props.icono, titulo: props.titulo, detalle: props.detalle, color: props.color, anim: props.anim, flecha: true, onClick: props.onClick }));
-}
 // --- rejilla de 2 columnas -------------------------------------------------
 function Rejilla(props) {
     return (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
@@ -836,7 +832,7 @@ function Content() {
                     /* silencio: es un sondeo */
                 }
             })();
-        }, 7000);
+        }, 5000);
         return () => clearInterval(id);
     }, []);
     const conBloqueo = async (fn) => {
@@ -963,18 +959,6 @@ function Content() {
     const maquinaNombre = nombreMaquina(est.maquina);
     const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
     const acento = C.azul;
-    const resumenPlanes = (() => {
-        const trozos = [];
-        for (const [clave, etiqueta] of [
-            ["wiiu", "Cemu"],
-            ["dolphin", "Dolphin"],
-        ]) {
-            const pl = est.planes?.[clave];
-            if (pl && pl.mandos.length)
-                trozos.push(`${etiqueta} ${pl.mandos.length}`);
-        }
-        return trozos.length ? trozos.join(" · ") : "sin datos";
-    })();
     return (SP_JSX.jsxs("div", { className: "ede-panel", style: {
             "--ede-acento": acento,
             "--ede-acento-halo": hexA(acento, 0.45),
@@ -1010,7 +994,7 @@ function Content() {
                                     }, children: [1, 2, 3, 4].map((n) => {
                                         const on = n <= Number(p.JUGADORES_MAX);
                                         return (SP_JSX.jsx("span", { className: `ede-slot ${on ? "on" : "off"}${pulsoMando === n ? " pulso" : ""}`, style: on ? { color: COLOR_JUGADOR[n - 1] } : undefined, children: SP_JSX.jsx(FaGamepad, { size: 15 }) }, n));
-                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, accion: SP_JSX.jsx(BotonIcono, { titulo: "Recargar mandos", icono: SP_JSX.jsx(FaSyncAlt, { size: 12 }), onClick: () => conBloqueo(refrescar) }), children: [!mostrarIntegrado && externos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, accion: SP_JSX.jsxs("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [SP_JSX.jsx(BotonIcono, { titulo: "Asignaci\u00F3n", icono: SP_JSX.jsx(FaFileAlt, { size: 12 }), onClick: () => abrirAsignacion(est.planes, setEst) }), SP_JSX.jsx(BotonIcono, { titulo: "Recargar mandos", icono: SP_JSX.jsx(FaSyncAlt, { size: 12 }), onClick: () => conBloqueo(refrescar) })] }), children: [!mostrarIntegrado && externos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                                 display: "grid",
                                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                                 gap: "6px",
@@ -1029,7 +1013,7 @@ function Content() {
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null] }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {

@@ -165,6 +165,9 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
 - Los drivers dejan `plan-<sistema>.txt` (lo lee el panel) y escriben en
   `log.txt`; `nucleo_guardar_plan` / `nucleo_registrar` son los únicos que
   tocan esos ficheros.
+- El driver de Eden desactiva el **applet de mandos** (`[LibraryApplet]
+  controller_applet_mode=2`) al aplicar: evita la ventana que pide OK al
+  iniciar el juego. `forzar_applet_apagado` no toca nada si ya esta en 2.
 - Cemu identifica el mando por `uuid = <puerto>_<guid>`; `display_name`,
   `<profile>` y `<type>` no intervienen en la búsqueda. El driver solo cambia el
   dispositivo: conserva tipo, perfil, bindings y las entradas no-SDL (DSU).

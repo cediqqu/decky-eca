@@ -1090,6 +1090,7 @@ planificar_sdl() {
     for t in ${SDL_DS_LISTA:-}; do
         [ "$k" -lt "${DS_N:-0}" ] || break
         [ "$i" -lt "$N_TOTALES" ] || break
+        [ "$i" -lt "$JUGADORES_MAX" ] || break
         par="${t%%:*}"; pg="${t#*:}"
         PLAN_JUGADORES="$PLAN_JUGADORES dual:$i:$par:$pg"
         resumen="$resumen
@@ -1097,7 +1098,8 @@ planificar_sdl() {
         i=$((i + 1)); k=$((k + 1))
     done
 
-    if [ "$primero_int" -eq 0 ] && [ "$INCLUIR_INT" -eq 1 ] && [ "$i" -lt "$N_TOTALES" ]; then
+    if [ "$primero_int" -eq 0 ] && [ "$INCLUIR_INT" -eq 1 ] \
+       && [ "$i" -lt "$N_TOTALES" ] && [ "$i" -lt "$JUGADORES_MAX" ]; then
         par="${SDL_INT_PAR%%:*}"; pg="${SDL_INT_PAR#*:}"
         PLAN_JUGADORES="$PLAN_JUGADORES integrado:$i:$par:$pg"
         resumen="$resumen
@@ -1180,7 +1182,8 @@ planificar() {
       Player 1 = INTEGRADO [$INTEGRADO_NOMBRES]   (port 0)"
         i=1
         local j=0
-        while [ "$j" -lt "$n" ] && [ "$i" -lt "$N_TOTALES" ]; do
+        while [ "$j" -lt "$n" ] && [ "$i" -lt "$N_TOTALES" ] \
+              && [ "$i" -lt "$JUGADORES_MAX" ]; do
             PLAN_JUGADORES="$PLAN_JUGADORES dual:$i:$j"
             resumen="$resumen
       Player $((i + 1)) = DualSense $((j + 1))   (port $j)"
@@ -1194,8 +1197,10 @@ planificar() {
       Player $((i + 1)) = DualSense $((j + 1))   (port $j)"
             i=$((i + 1)); j=$((j + 1))
             [ "$i" -ge "$N_TOTALES" ] && break
+            [ "$i" -ge "$JUGADORES_MAX" ] && break
         done
-        if [ "$INCLUIR_INT" -eq 1 ] && [ "$i" -lt "$N_TOTALES" ]; then
+        if [ "$INCLUIR_INT" -eq 1 ] && [ "$i" -lt "$N_TOTALES" ] \
+           && [ "$i" -lt "$JUGADORES_MAX" ]; then
             PLAN_JUGADORES="$PLAN_JUGADORES integrado:$i:0"
             resumen="$resumen
       Player $((i + 1)) = INTEGRADO [$INTEGRADO_NOMBRES]   (port 0)"
@@ -1373,6 +1378,46 @@ aplicar_retencion() {
         esac
     done
     return 0
+}
+
+# El applet de mandos de Eden abre una ventana al iniciar el juego. Como E.C.A
+# ya deja los mandos puestos, se desactiva: el juego continua sin preguntar.
+applet_apagado() { # $1 = fichero
+    awk -v sec="[LibraryApplet]" '
+        /^\[/ { d = ($0 == sec) }
+        d && /^controller_applet_mode[[:space:]]*=/ {
+            v = $0; sub(/^[^=]*=/, "", v); gsub(/[[:space:]]/, "", v)
+            if (v == "2") ok = 1
+        }
+        END { exit !ok }' "$1" 2>/dev/null
+}
+
+forzar_applet_apagado() { # $1 = fichero
+    local f="$1" tmp
+    [ -f "$f" ] || return 0
+    applet_apagado "$f" && return 0
+    tmp="$f.applet.$$"
+    awk -v sec="[LibraryApplet]" '
+        BEGIN { dentro = 0; puesto = 0; haysec = 0 }
+        /^\[/ {
+            if (dentro && !puesto) { print "controller_applet_mode=2"; puesto = 1 }
+            dentro = ($0 == sec)
+            if (dentro) haysec = 1
+            print
+            next
+        }
+        dentro && /^controller_applet_mode[[:space:]]*=/ {
+            if (!puesto) { print "controller_applet_mode=2"; puesto = 1 }
+            next
+        }
+        { print }
+        END {
+            if (puesto) exit
+            if (dentro) { print "controller_applet_mode=2" }
+            else if (!haysec) { print ""; print "[LibraryApplet]"; print "controller_applet_mode=2" }
+        }
+    ' "$f" >"$tmp" || { rm -f "$tmp"; return 1; }
+    mv -f -- "$tmp" "$f"
 }
 
 escribir_atomico() { # $1 = nuevo  $2 = destino
@@ -1603,6 +1648,10 @@ avisar_guid_no_visto() { # $1 = tipo, $2 = fichero plantilla
     montar_fichero "$nuevo" || { err "fallo al generar el fichero"; return 1; }
     validar_salida "$nuevo" "${QC_LF:-$QC}" || { err "la validacion ha fallado; NO se toca el original"; return 1; }
 
+    local applet_cambia=0
+    if ! applet_apagado "${QC_LF:-$QC}"; then applet_cambia=1; fi
+    forzar_applet_apagado "$nuevo" || warn "no he podido desactivar el applet de mandos"
+
     if [ "${RESUMEN_MOSTRADO:-0}" -eq 0 ]; then
         say "--- resumen ---"
         say "$PLAN_RESUMEN"
@@ -1617,7 +1666,11 @@ avisar_guid_no_visto() { # $1 = tipo, $2 = fichero plantilla
     comm -13 "$TMPDIR_RUN/lp.orig" "$TMPDIR_RUN/lp.new" >"$TMPDIR_RUN/lp.add"
 
     say "--- cambios ---"
-    if [ ! -s "$TMPDIR_RUN/lp.del" ] && [ ! -s "$TMPDIR_RUN/lp.add" ]; then
+    if [ "$applet_cambia" -eq 1 ]; then
+        say "applet de mandos de Eden: se desactiva (no volvera a preguntar)"
+    fi
+    if [ ! -s "$TMPDIR_RUN/lp.del" ] && [ ! -s "$TMPDIR_RUN/lp.add" ] \
+       && [ "$applet_cambia" -eq 0 ]; then
         say "(sin cambios de contenido: el fichero ya estaba correcto)"
         if [ "$solo_preview" -eq 0 ]; then
             say "No hace falta escribir nada."

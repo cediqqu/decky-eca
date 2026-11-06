@@ -930,28 +930,6 @@ function TarjetaAccion(props: {
   );
 }
 
-// --- tarjeta ancha (icono a la izquierda, como el menu de PdC) --------------
-function TarjetaFila(props: {
-  icono: ReactNode;
-  titulo: string;
-  detalle?: string;
-  color?: string;
-  anim?: AnimIcono;
-  onClick: () => void;
-}) {
-  return (
-    <TarjetaBase
-      icono={props.icono}
-      titulo={props.titulo}
-      detalle={props.detalle}
-      color={props.color}
-      anim={props.anim}
-      flecha
-      onClick={props.onClick}
-    />
-  );
-}
-
 // --- rejilla de 2 columnas -------------------------------------------------
 function Rejilla(props: { children: ReactNode }) {
   return (
@@ -1314,7 +1292,7 @@ function Content() {
           /* silencio: es un sondeo */
         }
       })();
-    }, 7000);
+    }, 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -1490,18 +1468,6 @@ function Content() {
   const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
   const acento = C.azul;
 
-  const resumenPlanes = (() => {
-    const trozos: string[] = [];
-    for (const [clave, etiqueta] of [
-      ["wiiu", "Cemu"],
-      ["dolphin", "Dolphin"],
-    ] as const) {
-      const pl = est.planes?.[clave];
-      if (pl && pl.mandos.length) trozos.push(`${etiqueta} ${pl.mandos.length}`);
-    }
-    return trozos.length ? trozos.join(" · ") : "sin datos";
-  })();
-
   return (
     <div
       className="ede-panel"
@@ -1653,11 +1619,18 @@ function Content() {
         icono={<FaGamepad size={13} />}
         abierta={true}
         accion={
-          <BotonIcono
-            titulo="Recargar mandos"
-            icono={<FaSyncAlt size={12} />}
-            onClick={() => conBloqueo(refrescar)}
-          />
+          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <BotonIcono
+              titulo="Asignación"
+              icono={<FaFileAlt size={12} />}
+              onClick={() => abrirAsignacion(est.planes, setEst)}
+            />
+            <BotonIcono
+              titulo="Recargar mandos"
+              icono={<FaSyncAlt size={12} />}
+              onClick={() => conBloqueo(refrescar)}
+            />
+          </span>
         }
       >
         {!mostrarIntegrado && externos.length === 0 ? (
@@ -1751,18 +1724,6 @@ function Content() {
           </PanelSectionRow>
         ) : null}
       </Seccion>
-
-      <PanelSection>
-        <PanelSectionRow>
-          <TarjetaFila
-            color={C.turquesa}
-            icono={<FaFileAlt size={16} />}
-            titulo="Asignación"
-            detalle={resumenPlanes}
-            onClick={() => abrirAsignacion(est.planes, setEst)}
-          />
-        </PanelSectionRow>
-      </PanelSection>
 
       <Seccion
         titulo="Ajustes"
