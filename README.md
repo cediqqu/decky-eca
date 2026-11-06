@@ -6,17 +6,17 @@ emuladores de Nintendo desde el menú rápido de Steam (QAM): **[Eden](https://e
 elige **cuántos mandos** usar y **qué hacer con el integrado**, y lo aplica al
 lanzar el juego desde [ES-DE](https://es-de.org/). Sin root.
 
-[![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-eca?label=release)](https://github.com/CeDiqqu/decky-eca/releases/latest)
-[![Licencia](https://img.shields.io/github/license/CeDiqqu/decky-eca)](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-neca?label=release)](https://github.com/CeDiqqu/decky-neca/releases/latest)
+[![Licencia](https://img.shields.io/github/license/CeDiqqu/decky-neca)](https://github.com/CeDiqqu/decky-neca/blob/main/LICENSE)
 
-[English](https://github.com/CeDiqqu/decky-eca/blob/main/README.en.md) · **Español**
+[English](https://github.com/CeDiqqu/decky-neca/blob/main/README.en.md) · **Español**
 
 > **Estado:** v2.0.0 (6 nov 2026). Primera versión de N.E.C.A; sustituye a
 > E.C.A 1.0.0. Probada en **ROG Xbox Ally X** con SteamOS y DualSense por
 > Bluetooth. Mantenida por [CeDiqqu](https://github.com/CeDiqqu), sin cadencia
 > fija.
 
-Cambios por versión: [CHANGELOG.md](https://github.com/CeDiqqu/decky-eca/blob/main/CHANGELOG.md).
+Cambios por versión: [CHANGELOG.md](https://github.com/CeDiqqu/decky-neca/blob/main/CHANGELOG.md).
 
 Pensado para PC de mano con SteamOS y ES-DE (EmuDeck), no para Windows.
 
@@ -66,7 +66,7 @@ necesitas fijar más de un jugador por MAC.
 
 ## Instalación
 
-1. Descarga **[neca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/neca-decky.zip)**.
+1. Descarga **[neca-decky.zip](https://github.com/CeDiqqu/decky-neca/releases/latest/download/neca-decky.zip)**.
 2. En la consola: **Decky → Developer → Install Plugin from ZIP**. Se instala en
    `~/homebrew/plugins/NecaAutoconfig/`.
 
@@ -253,10 +253,10 @@ bash build.sh             # sincroniza scripts/ + compila + genera el zip
   autoinstala si faltan ficheros y lee los planes de Cemu/Dolphin. Se puede
   probar sin consola con un `HOME` falso y `EDEN_FAKE_SDL`.
 - Detalles de SDL, CRC del GUID, plantillas y diagnóstico:
-  [README de `eden_controller`](https://github.com/CeDiqqu/decky-eca/blob/main/eden_controller/README.md).
+  [README de `eden_controller`](https://github.com/CeDiqqu/decky-neca/blob/main/eden_controller/README.md).
 
 ---
 
-BSD-3-Clause. Ver [LICENSE](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE).
-Si algo no cuadra, abre un [issue](https://github.com/CeDiqqu/decky-eca/issues)
+BSD-3-Clause. Ver [LICENSE](https://github.com/CeDiqqu/decky-neca/blob/main/LICENSE).
+Si algo no cuadra, abre un [issue](https://github.com/CeDiqqu/decky-neca/issues)
 con el log de `~/eden-autoconfig/log.txt`.

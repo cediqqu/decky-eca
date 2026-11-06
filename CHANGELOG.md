@@ -125,6 +125,6 @@ Todos los cambios relevantes de N.E.C.A se documentan aquí. El formato sigue
   scripts, el panel solo escribe el bloque gestionado del `.conf` y su estado en
   `~/.config/eden-autoconfig-decky/`.
 
-[Unreleased]: https://github.com/CeDiqqu/decky-eca/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/CeDiqqu/decky-eca/releases/tag/v2.0.0
-[1.0.0]: https://github.com/CeDiqqu/decky-eca/releases/tag/v1.0.0
+[Unreleased]: https://github.com/CeDiqqu/decky-neca/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/CeDiqqu/decky-neca/releases/tag/v2.0.0
+[1.0.0]: https://github.com/CeDiqqu/decky-neca/releases/tag/v1.0.0

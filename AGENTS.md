@@ -7,7 +7,7 @@ scripts vive ahora **dentro** de esta carpeta.
 ## Estructura
 
 ```
-decky-eca/                plugin (plugin.json, main.py, src/, dist/, build.sh…)
+decky-neca/               plugin (plugin.json, main.py, src/, dist/, build.sh…)
 ├── neca-decky.zip         zip instalable en Decky
 ├── scripts/              COPIA GENERADA desde eden_controller/ (no editar aquí)
 └── eden_controller/      proyecto de scripts (fuente de verdad) + su AGENTS.md
