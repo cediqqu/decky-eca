@@ -1386,13 +1386,18 @@ aplicar_retencion() {
 # El applet de mandos de Eden abre una ventana al iniciar el juego. Como E.C.A
 # ya deja los mandos puestos, se desactiva: el juego continua sin preguntar.
 applet_apagado() { # $1 = fichero
+    # Eden solo usa el valor si ademas esta "\default=false"
     awk -v sec="[LibraryApplet]" '
         /^\[/ { d = ($0 == sec) }
+        d && /^controller_applet_mode\\default[[:space:]]*=/ {
+            v = $0; sub(/^[^=]*=/, "", v); gsub(/[[:space:]]/, "", v)
+            if (v == "false") def = 1
+        }
         d && /^controller_applet_mode[[:space:]]*=/ {
             v = $0; sub(/^[^=]*=/, "", v); gsub(/[[:space:]]/, "", v)
             if (v == "2") ok = 1
         }
-        END { exit !ok }' "$1" 2>/dev/null
+        END { exit !(ok && def) }' "$1" 2>/dev/null
 }
 
 forzar_applet_apagado() { # $1 = fichero
@@ -1401,12 +1406,19 @@ forzar_applet_apagado() { # $1 = fichero
     applet_apagado "$f" && return 0
     tmp="$f.applet.$$"
     awk -v sec="[LibraryApplet]" '
-        BEGIN { dentro = 0; puesto = 0; haysec = 0 }
+        BEGIN { dentro = 0; puesto = 0; defp = 0; haysec = 0 }
         /^\[/ {
-            if (dentro && !puesto) { print "controller_applet_mode=2"; puesto = 1 }
+            if (dentro) {
+                if (!puesto) { print "controller_applet_mode=2"; puesto = 1 }
+                if (!defp) { print "controller_applet_mode\\default=false"; defp = 1 }
+            }
             dentro = ($0 == sec)
             if (dentro) haysec = 1
             print
+            next
+        }
+        dentro && /^controller_applet_mode\\default[[:space:]]*=/ {
+            if (!defp) { print "controller_applet_mode\\default=false"; defp = 1 }
             next
         }
         dentro && /^controller_applet_mode[[:space:]]*=/ {
@@ -1415,9 +1427,15 @@ forzar_applet_apagado() { # $1 = fichero
         }
         { print }
         END {
-            if (puesto) exit
-            if (dentro) { print "controller_applet_mode=2" }
-            else if (!haysec) { print ""; print "[LibraryApplet]"; print "controller_applet_mode=2" }
+            if (dentro) {
+                if (!puesto) { print "controller_applet_mode=2"; puesto = 1 }
+                if (!defp) { print "controller_applet_mode\\default=false"; defp = 1 }
+            } else if (!haysec) {
+                print ""
+                print "[LibraryApplet]"
+                print "controller_applet_mode=2"
+                print "controller_applet_mode\\default=false"
+            }
         }
     ' "$f" >"$tmp" || { rm -f "$tmp"; return 1; }
     mv -f -- "$tmp" "$f"

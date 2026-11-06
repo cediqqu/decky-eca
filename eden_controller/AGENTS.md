@@ -167,9 +167,10 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
   tocan esos ficheros.
 - La version del driver se lee de `VERSION`; `build.sh` la genera y `instalar.sh`
   la copia. No volver a fijarla a mano en el script.
-- El driver de Eden desactiva el **applet de mandos** (`[LibraryApplet]
-  controller_applet_mode=2`) al aplicar: evita la ventana que pide OK al
-  iniciar el juego. `forzar_applet_apagado` no toca nada si ya esta en 2.
+- El driver de Eden desactiva el **applet de mandos** al aplicar: evita la
+  ventana que pide OK al iniciar el juego. Eden solo usa el valor si ademas
+  `controller_applet_mode\default=false`; `forzar_applet_apagado` escribe las
+  dos lineas y no toca nada si ya estan bien.
 - Cemu identifica el mando por `uuid = <puerto>_<guid>`; `display_name`,
   `<profile>` y `<type>` no intervienen en la búsqueda. El driver solo cambia el
   dispositivo: conserva tipo, perfil, bindings y las entradas no-SDL (DSU).
