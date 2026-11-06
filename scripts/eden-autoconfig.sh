@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  eden-autoconfig.sh  --  despachador de E.C.A (Eden Control Autoconfig)
+#  eden-autoconfig.sh  --  despachador de N.E.C.A (Nintendo-EmuDeck Controller Autoconf)
 # =============================================================================
 #  Elige el driver segun el sistema del juego y le pasa todos los argumentos.
 #
@@ -44,7 +44,7 @@ case "${SISTEMA,,}" in
     gc|wii|gamecube|dolphin)  DRIVER="dolphin" ;;
     wiiu|cemu|wii-u)          DRIVER="cemu" ;;
     *)
-        echo "E.C.A: sistema no soportado: $SISTEMA" >&2
+        echo "N.E.C.A: sistema no soportado: $SISTEMA" >&2
         echo "  validos: switch | gc | wii | wiiu" >&2
         exit 1
         ;;
@@ -54,7 +54,7 @@ NUCLEO="$AQUI/eden-nucleo.sh"
 DRIVER_FILE="$AQUI/eden-driver-$DRIVER.sh"
 for f in "$NUCLEO" "$DRIVER_FILE"; do
     if [ ! -r "$f" ]; then
-        echo "E.C.A: falta $f" >&2
+        echo "N.E.C.A: falta $f" >&2
         exit 1
     fi
 done

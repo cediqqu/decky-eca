@@ -1428,7 +1428,7 @@ function Content() {
       <ConfirmModal
         strTitle="Restaurar todo"
         strDescription={
-          "Se restaurara el qt-config.ini anterior a E.C.A, se quitaran las " +
+          "Se restaurara el qt-config.ini anterior a N.E.C.A, se quitaran las " +
           "preferencias del plugin y se desactivara el hook de ES-DE.\n\n" +
           "Eden debe estar cerrado. Se guarda una copia del estado actual.\n\n" +
           "Podras reactivar el hook con el boton de arriba."
@@ -1451,7 +1451,7 @@ function Content() {
 
   if (!est) {
     return (
-      <PanelSection title="E.C.A">
+      <PanelSection title="N.E.C.A">
         <PanelSectionRow>
           <div style={{ opacity: 0.8 }}>Leyendo mandos...</div>
         </PanelSectionRow>
@@ -1771,12 +1771,12 @@ function Content() {
 
 export default definePlugin(() => {
   return {
-    name: "E.C.A",
-    titleView: <div className={staticClasses.Title}>E.C.A</div>,
+    name: "N.E.C.A",
+    titleView: <div className={staticClasses.Title}>N.E.C.A</div>,
     content: <Content />,
     icon: <FaGamepad />,
     onDismount() {
-      console.log("E.C.A descargado");
+      console.log("N.E.C.A descargado");
     },
   };
 });

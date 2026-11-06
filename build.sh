@@ -7,13 +7,13 @@
 #         SCRIPTS_VERSION=1.2.0 bash build.sh
 #
 #  Lo que hace:
-#    1. Copia los scripts de Eden Control Autoconfig (proyecto eden_controller) a
+#    1. Copia los scripts de Nintendo-EmuDeck Controller Autoconf (proyecto eden_controller) a
 #       scripts/  -- NUNCA se editan aqui: esta carpeta es solo una copia
 #       generada. La fuente de verdad sigue siendo ./eden_controller.
 #    2. Escribe scripts/VERSION (version + hash + fecha) para que el panel
 #       pueda avisar si lo instalado esta desactualizado.
 #    3. Compila el frontend (rollup -> dist/index.js).
-#    4. Genera eca-decky.zip listo para Decky > Developer.
+#    4. Genera neca-decky.zip listo para Decky > Developer.
 #
 #  Si falta ./eden_controller, se salta el paso 1 y usa la
 #  copia ya incluida en el repo (asi funciona tambien en GitHub Actions).
@@ -24,10 +24,10 @@ set -u
 AQUI="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 ORIGEN="${EDEN_SCRIPTS_DIR:-$AQUI/eden_controller}"
 DEST="$AQUI/scripts"
-ZIP="$AQUI/eca-decky.zip"
+ZIP="$AQUI/neca-decky.zip"
 VERSION_SCRIPTS="${SCRIPTS_VERSION:-1.1.0}"
 
-NOMBRE_ZIP="eca-decky.zip"
+NOMBRE_ZIP="neca-decky.zip"
 
 say() { printf '%s\n' "$*"; }
 err() { printf 'ERROR: %s\n' "$*" >&2; }

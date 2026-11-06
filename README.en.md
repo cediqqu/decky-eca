@@ -1,10 +1,11 @@
-# E.C.A: Eden Control Autoconfig
+# N.E.C.A: Nintendo-EmuDeck Controller Autoconf
 
-A [Decky](https://decky.xyz/) plugin that configures [Eden](https://eden-emu.dev/)'s
-controllers from the Steam Quick Access Menu (QAM): it sets **Player 1**, picks
-**how many DualSense controllers** to use and **what to do with the built-in
-controller**, and applies it when a game launches from [ES-DE](https://es-de.org/).
-No root.
+A [Decky](https://decky.xyz/) plugin that autoconfigures the controllers of the
+Nintendo emulators from the Steam Quick Access Menu (QAM): **[Eden](https://eden-emu.dev/)**
+(Switch), **Dolphin** (GameCube/Wii) and **Cemu** (Wii U). It sets **Player 1**,
+picks **how many DualSense controllers** to use and **what to do with the
+built-in controller**, and applies it when a game launches from
+[ES-DE](https://es-de.org/). No root.
 
 [![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-eca?label=release)](https://github.com/CeDiqqu/decky-eca/releases/latest)
 [![License](https://img.shields.io/github/license/CeDiqqu/decky-eca)](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE)
@@ -19,10 +20,10 @@ Changes by version: [CHANGELOG.md](https://github.com/CeDiqqu/decky-eca/blob/mai
 
 Built for SteamOS handhelds with ES-DE (EmuDeck), not for Windows.
 
-## Why E.C.A
+## Why N.E.C.A
 
 - **Player 1 is stored by MAC, not by port.** Steam can renumber ports between
-  sessions; E.C.A pins the exact controller.
+  sessions; N.E.C.A pins the exact controller.
 - **In your configuration, it only writes one marked block** at the end of
   `eden-autoconfig.conf`. The rest of the file, your templates and your backups
   stay untouched.
@@ -59,7 +60,7 @@ appear, with the English meaning in parentheses.
 
 ## Installation
 
-1. Download **[eca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/eca-decky.zip)**.
+1. Download **[neca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/neca-decky.zip)**.
 2. On the handheld: **Decky → Developer → Install Plugin from ZIP**. It installs
    to `~/homebrew/plugins/EdenAutoconfig/` (the folder keeps that name so an
    update replaces the previous version).
@@ -153,7 +154,7 @@ RETENCION_BACKUPS=10
   Deleting the block does not touch `qt-config.ini`.
 
 **Restaurar todo** (Restore everything) under **Avanzado** (Advanced) returns the
-device to its pre-E.C.A state. Eden must be closed:
+device to its pre-N.E.C.A state. Eden must be closed:
 
 1. It restores the original `qt-config.ini`, saved the first time in
    `~/eden-autoconfig/stock/qt-config.ini` (that file is never deleted).

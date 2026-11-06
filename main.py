@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-#  main.py -- backend del plugin de Decky "E.C.A" (Eden Control Autoconfig)
+#  main.py -- backend del plugin de Decky "N.E.C.A" (Nintendo-EmuDeck Controller Autoconf)
 # =============================================================================
 #  Este backend NO reimplementa nada del proyecto de scripts (eden_controller).
 #  Solo hace tres cosas:
@@ -48,7 +48,7 @@ INSTALADOR = "instalar.sh"
 BEGIN = "# >>> eden-autoconfig-decky >>>"
 END = "# <<< eden-autoconfig-decky <<<"
 
-# valores por defecto de E.C.A (los mismos que el script)
+# valores por defecto de N.E.C.A (los mismos que el script)
 PREF_DEF = {
     "P1_SERIE": "",
     "JUGADORES_MAX": "4",
@@ -235,7 +235,7 @@ def _escribir_prefs(prefs):
         if not _instalado()[0]:
             return False, ("no existe %s y los scripts no estan instalados.\n"
                            "Pulsa 'Instalar scripts' primero." % conf)
-        texto = ("# Creado por el plugin E.C.A.\n"
+        texto = ("# Creado por el plugin N.E.C.A.\n"
                  "# El plugin solo gestiona el bloque marcado al final.\n")
     except Exception as exc:
         return False, "no puedo leer %s: %s" % (conf, exc)
@@ -795,7 +795,7 @@ class Plugin:
     # ------------------------------------------------------------------ vida
     async def _main(self):
         ok, ruta = _instalado()
-        log.info("E.C.A listo. HOME=%s scripts=%s",
+        log.info("N.E.C.A listo. HOME=%s scripts=%s",
                  _home(), "instalados" if ok else "NO instalados (%s)" % ruta)
         if not ok:
             log.info("Pulsa 'Instalar scripts' en el panel para instalarlos.")
@@ -817,7 +817,7 @@ class Plugin:
         log.info("auto-instalacion: exit %s %s", rc, _corta(salida)[-300:])
 
     async def _unload(self):
-        log.info("E.C.A descargado (no se toca ~/eden-autoconfig)")
+        log.info("N.E.C.A descargado (no se toca ~/eden-autoconfig)")
 
     # --------------------------------------------------------------- estado
     async def estado(self):
@@ -1019,7 +1019,7 @@ class Plugin:
         return {"exit": rc, "salida": _corta(salida), "mensaje": _mensaje_exit(rc)}
 
     async def restaurar_todo(self):
-        """Vuelve al estado anterior a E.C.A: config, preferencias y hook."""
+        """Vuelve al estado anterior a N.E.C.A: config, preferencias y hook."""
         base = _base()
         backups = os.path.join(base, "backups")
         stock_dir = os.path.join(base, "stock")

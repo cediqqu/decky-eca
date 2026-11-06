@@ -1,7 +1,7 @@
 {
-  "name": "eca-decky",
+  "name": "neca-decky",
   "version": "1.0.0",
-  "description": "E.C.A (Eden Control Autoconfig): plugin de Decky para autoconfigurar los mandos de Eden.",
+  "description": "N.E.C.A (Nintendo-EmuDeck Controller Autoconf): plugin de Decky para autoconfigurar los mandos de Eden, Dolphin y Cemu.",
   "type": "module",
   "scripts": {
     "build": "rollup -c",

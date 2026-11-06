@@ -1,6 +1,6 @@
 # Changelog
 
-Todos los cambios relevantes de E.C.A se documentan aquí. El formato sigue
+Todos los cambios relevantes de N.E.C.A se documentan aquí. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones usan
 [SemVer](https://semver.org/lang/es/).
 

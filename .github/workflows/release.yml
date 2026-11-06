@@ -28,4 +28,4 @@ jobs:
       - name: Publicar el zip en la Release
         uses: softprops/action-gh-release@v2
         with:
-          files: eca-decky.zip
+          files: neca-decky.zip

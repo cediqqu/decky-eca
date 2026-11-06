@@ -1,10 +1,10 @@
-# E.C.A: Eden Control Autoconfig
+# N.E.C.A: Nintendo-EmuDeck Controller Autoconf
 
-Plugin de [Decky](https://decky.xyz/) que configura los mandos de
-[Eden](https://eden-emu.dev/) desde el menú rápido de Steam (QAM): fija el
-**Player 1**, elige **cuántos DualSense** usar y **qué hacer con el mando
-integrado**, y lo aplica al lanzar el juego desde [ES-DE](https://es-de.org/).
-Sin root.
+Plugin de [Decky](https://decky.xyz/) que autoconfigura los mandos de los
+emuladores de Nintendo desde el menú rápido de Steam (QAM): **[Eden](https://eden-emu.dev/)**
+(Switch), **Dolphin** (GameCube/Wii) y **Cemu** (Wii U). Fija el **Player 1**,
+elige **cuántos DualSense** usar y **qué hacer con el mando integrado**, y lo
+aplica al lanzar el juego desde [ES-DE](https://es-de.org/). Sin root.
 
 [![Release](https://img.shields.io/github/v/release/CeDiqqu/decky-eca?label=release)](https://github.com/CeDiqqu/decky-eca/releases/latest)
 [![Licencia](https://img.shields.io/github/license/CeDiqqu/decky-eca)](https://github.com/CeDiqqu/decky-eca/blob/main/LICENSE)
@@ -19,10 +19,12 @@ Cambios por versión: [CHANGELOG.md](https://github.com/CeDiqqu/decky-eca/blob/m
 
 Pensado para PC de mano con SteamOS y ES-DE (EmuDeck), no para Windows.
 
-## Por qué E.C.A
+## Por qué N.E.C.A
 
+- **Tres emuladores, una sola configuración.** Eden (Switch), Dolphin
+  (GameCube/Wii) y Cemu (Wii U) reciben el mando que les toca al lanzar.
 - **El Player 1 va por MAC, no por puerto.** Steam puede renumerar los puertos
-  entre sesiones; E.C.A fija el mando concreto.
+  entre sesiones; N.E.C.A fija el mando concreto.
 - **En tu configuración, solo escribe un bloque marcado** al final de
   `eden-autoconfig.conf`. El resto del fichero, tus plantillas y tus copias
   quedan intactos.
@@ -55,7 +57,7 @@ si necesitas fijar más de un jugador por MAC.
 
 ## Instalación
 
-1. Descarga **[eca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/eca-decky.zip)**.
+1. Descarga **[neca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/neca-decky.zip)**.
 2. En la consola: **Decky → Developer → Install Plugin from ZIP**. Se instala en
    `~/homebrew/plugins/EdenAutoconfig/` (la carpeta conserva ese nombre para que
    la actualización sustituya a la versión anterior).
@@ -144,7 +146,7 @@ RETENCION_BACKUPS=10
   `qt-config.ini` no se toca por borrar el bloque.
 
 **Restaurar todo** (en **Avanzado**) devuelve el equipo al estado anterior a
-E.C.A. Eden debe estar cerrado:
+N.E.C.A. Eden debe estar cerrado:
 
 1. Restaura el `qt-config.ini` original, guardado la primera vez en
    `~/eden-autoconfig/stock/qt-config.ini` (ese fichero no se borra nunca).

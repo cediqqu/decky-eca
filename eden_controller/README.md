@@ -1,8 +1,11 @@
-# eden-autoconfig
+# N.E.C.A — scripts
 
-Configura **automáticamente los mandos de Eden** (fork de Yuzu) al lanzar un juego
-de Switch desde ES-DE, para no tener que reasignar a mano en *Ajustes → Controles*
-cada vez.
+Autoconfigura **los mandos de los emuladores de Nintendo** al lanzar el juego
+desde ES-DE: **Eden** (Switch), **Dolphin** (GameCube/Wii) y **Cemu** (Wii U).
+El despachador elige el driver con `--sistema switch|gc|wii|wiiu`; sin
+`--sistema` se usa Eden.
+
+Así no hay que reasignar a mano los mandos en cada emulador.
 
 Probado con: SteamOS, EmuDeck, ES-DE, Eden en AppImage, ROG Xbox Ally X y
 DualSense por Bluetooth.

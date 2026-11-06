@@ -1,4 +1,4 @@
-# AGENTS.md — E.C.A (Eden Control Autoconfig)
+# AGENTS.md — N.E.C.A (Nintendo-EmuDeck Controller Autoconf)
 
 Plugin de Decky para autoconfigurar los mandos de Eden (Switch), Dolphin
 (GameCube/Wii) y Cemu (Wii U) desde el menú rápido de Steam. El proyecto de
@@ -8,7 +8,7 @@ scripts vive ahora **dentro** de esta carpeta.
 
 ```
 decky-eca/                plugin (plugin.json, main.py, src/, dist/, build.sh…)
-├── eca-decky.zip         zip instalable en Decky
+├── neca-decky.zip         zip instalable en Decky
 ├── scripts/              COPIA GENERADA desde eden_controller/ (no editar aquí)
 └── eden_controller/      proyecto de scripts (fuente de verdad) + su AGENTS.md
 ```

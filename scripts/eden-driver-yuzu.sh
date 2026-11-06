@@ -1383,7 +1383,7 @@ aplicar_retencion() {
     return 0
 }
 
-# El applet de mandos de Eden abre una ventana al iniciar el juego. Como E.C.A
+# El applet de mandos de Eden abre una ventana al iniciar el juego. Como N.E.C.A
 # ya deja los mandos puestos, se desactiva: el juego continua sin preguntar.
 applet_apagado() { # $1 = fichero
     # Eden solo usa el valor si ademas esta "\default=false"

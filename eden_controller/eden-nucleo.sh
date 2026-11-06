@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  eden-nucleo.sh  --  piezas compartidas por los drivers de E.C.A
+#  eden-nucleo.sh  --  piezas compartidas por los drivers de N.E.C.A
 # =============================================================================
 #  Fase 0 del refactor: aqui vive lo que necesitan TODOS los drivers. De
 #  momento son las rutas y la carga de preferencias comunes; el driver de Eden

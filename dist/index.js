@@ -1,4 +1,4 @@
-const manifest = {"name":"E.C.A"};
+const manifest = {"name":"N.E.C.A"};
 const API_VERSION = 2;
 const internalAPIConnection = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
 if (!internalAPIConnection) {
@@ -938,7 +938,7 @@ function Content() {
         await refrescar();
     });
     const restaurarTodo = () => {
-        DFL.showModal(SP_JSX.jsx(DFL.ConfirmModal, { strTitle: "Restaurar todo", strDescription: "Se restaurara el qt-config.ini anterior a E.C.A, se quitaran las " +
+        DFL.showModal(SP_JSX.jsx(DFL.ConfirmModal, { strTitle: "Restaurar todo", strDescription: "Se restaurara el qt-config.ini anterior a N.E.C.A, se quitaran las " +
                 "preferencias del plugin y se desactivara el hook de ES-DE.\n\n" +
                 "Eden debe estar cerrado. Se guarda una copia del estado actual.\n\n" +
                 "Podras reactivar el hook con el boton de arriba.", strOKButtonText: "Restaurar", strCancelButtonText: "Cancelar", onOK: () => {
@@ -950,7 +950,7 @@ function Content() {
             }, onCancel: () => { } }));
     };
     if (!est) {
-        return (SP_JSX.jsx(DFL.PanelSection, { title: "E.C.A", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "Leyendo mandos..." }) }) }));
+        return (SP_JSX.jsx(DFL.PanelSection, { title: "N.E.C.A", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "Leyendo mandos..." }) }) }));
     }
     const p = est.prefs;
     const integrado = est.mandos.find((m) => m.clase === "Integrado") ?? null;
@@ -1017,12 +1017,12 @@ function Content() {
 }
 var index = definePlugin(() => {
     return {
-        name: "E.C.A",
-        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "E.C.A" }),
+        name: "N.E.C.A",
+        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "N.E.C.A" }),
         content: SP_JSX.jsx(Content, {}),
         icon: SP_JSX.jsx(FaGamepad, {}),
         onDismount() {
-            console.log("E.C.A descargado");
+            console.log("N.E.C.A descargado");
         },
     };
 });

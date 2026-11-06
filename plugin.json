@@ -1,5 +1,5 @@
 {
-  "name": "E.C.A",
+  "name": "N.E.C.A",
   "author": "CeDiqqu",
   "flags": [],
   "api_version": 1,
@@ -15,7 +15,7 @@
       "wiiu",
       "gamecube"
     ],
-    "description": "E.C.A (Eden Control Autoconfig): autoconfigura los mandos de Eden (Switch), Dolphin (GameCube/Wii) y Cemu (Wii U) antes de lanzar el juego. Sin root y sin tocar tus scripts.",
+    "description": "N.E.C.A (Nintendo-EmuDeck Controller Autoconf): autoconfigura los mandos de Eden (Switch), Dolphin (GameCube/Wii) y Cemu (Wii U) antes de lanzar el juego. Sin root y sin tocar tus scripts.",
     "image": "https://opengraph.githubassets.com/1/CeDiqqu/decky-eca"
   }
 }
