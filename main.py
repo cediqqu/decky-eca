@@ -326,7 +326,16 @@ def _auto_integrado(prefs, ds_n):
     """Sin eleccion manual: Jugador 1 sin externos, ultimo en cuanto hay uno."""
     if prefs.get("INTEGRADO_MANUAL") == "si":
         return prefs, ""
-    deseado = "primero" if ds_n == 0 else "ultimo"
+    try:
+        tope = int(prefs.get("JUGADORES_MAX", "4"))
+    except Exception:
+        tope = 4
+    if ds_n == 0:
+        deseado = "primero"
+    elif ds_n >= tope:
+        deseado = "ignorar"      # no queda hueco para el integrado
+    else:
+        deseado = "ultimo"
     nota = ""
     if prefs["ORDEN_INTEGRADO"] != deseado:
         prefs["ORDEN_INTEGRADO"] = deseado
@@ -735,6 +744,14 @@ def _parse_mandos(texto):
             "virtual": virtual,
             "gamepad": gamepad == "1",
         })
+    # si no hay integrado pero hay un unico pad virtual suelto, es el integrado
+    if not any(m["clase"] == "Integrado" for m in mandos):
+        virtuales = [m for m in mandos
+                     if m["clase"] == "Otro" and m["virtual"] and not m["serie"]]
+        if len(virtuales) == 1:
+            virtuales[0]["clase"] = "Integrado"
+            virtuales[0]["familia"] = "integrado"
+            virtuales[0]["conexion"] = "Interno"
     return mandos
 
 
@@ -834,10 +851,10 @@ class Plugin:
         limite = int(prefs["JUGADORES_MAX"])
         for m in mandos:
             m["principal"] = bool(prefs["P1_SERIE"]) and m["serie"] == prefs["P1_SERIE"]
-            if m["virtual"]:
-                jug = plan["virtual"].get(m["puerto"])
-            elif m["clase"] == "Integrado":
+            if m["clase"] == "Integrado":
                 jug = plan["integrado"]
+            elif m["virtual"]:
+                jug = plan["virtual"].get(m["puerto"])
             elif m["clase"] == "DualSense":
                 jug = plan["dual"].get(m["puerto"])
             else:

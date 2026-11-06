@@ -105,6 +105,22 @@ nucleo_mandos() {
         fi
         NUCLEO_RAW+=("$nombre|${sdl:-$nombre}|${serie:-}|${indice:-0}|$clase|${puerto:-0}_${guid}")
     done <<<"$out"
+
+    # Si no hay integrado pero Steam expone un unico pad virtual suelto (el
+    # mando de la consola), lo tratamos como integrado (igual que Eden).
+    local i n2 sdl2 serie2 ind2 clase2 uuid2 guid2 hay_int=0 virt=0 idx=-1
+    for i in "${!NUCLEO_RAW[@]}"; do
+        IFS='|' read -r n2 sdl2 serie2 ind2 clase2 uuid2 <<<"${NUCLEO_RAW[$i]}"
+        [ "$clase2" = "integrado" ] && hay_int=1
+        guid2="${uuid2#*_}"
+        if [ "$clase2" = "otro" ] && [ "${guid2:8:4}" = "de28" ] && [ -z "$serie2" ]; then
+            virt=$((virt + 1)); idx=$i
+        fi
+    done
+    if [ "$hay_int" -eq 0 ] && [ "$virt" -eq 1 ] && [ "$idx" -ge 0 ]; then
+        IFS='|' read -r n2 sdl2 serie2 ind2 clase2 uuid2 <<<"${NUCLEO_RAW[$idx]}"
+        NUCLEO_RAW[$idx]="$n2|$sdl2|$serie2|$ind2|integrado|$uuid2"
+    fi
 }
 
 # Rellena el plan y todo lo necesario para explicarlo:

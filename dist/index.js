@@ -493,7 +493,7 @@ function MandoCuadrado(props) {
                                 color: C.gris,
                                 opacity: 0.85,
                                 lineHeight: 1,
-                            }, children: "Apagado" })) : null, mostrarMac && m.serie ? (SP_JSX.jsx("div", { style: {
+                            }, children: "Desactivado" })) : null, mostrarMac && m.serie ? (SP_JSX.jsx("div", { style: {
                                 fontSize: "0.53em",
                                 color: C.texto2,
                                 opacity: 0.5,
@@ -619,13 +619,11 @@ function ChipEstado(props) {
 }
 // --- tarjeta del mando integrado -------------------------------------------
 function TarjetaIntegrado(props) {
-    const detalle = props.modo === "ignorar"
+    const detalle = props.modo === "ignorar" || (props.detectado && !props.jugador)
         ? "Desactivado"
-        : props.detectado && !props.jugador
-            ? "Apagado"
-            : props.modo === "primero"
-                ? "Jugador 1"
-                : "Último jugador";
+        : props.modo === "primero"
+            ? "Jugador 1"
+            : "Último jugador";
     return (SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: props.icono, anim: "pop", titulo: "Integrado", detalle: detalle, onClick: props.onClick }));
 }
 function IconoTarjeta(props) {

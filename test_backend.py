@@ -604,6 +604,24 @@ async def main():
     check("con externo -> ultimo jugador",
           est["prefs"]["ORDEN_INTEGRADO"] == "ultimo", est["prefs"])
 
+    # 2 externos con 2 jugadores: el integrado no cabe -> desactivado
+    prefs = mod._leer_prefs()
+    prefs["INTEGRADO_MANUAL"] = "no"
+    prefs["JUGADORES_MAX"] = "2"
+    prefs["ORDEN_INTEGRADO"] = "ultimo"
+    mod._escribir_prefs(prefs)
+    os.environ["EDEN_FAKE_SDL"] = plan
+    est = await mod.Plugin().estado()
+    check("sin hueco -> desactivado",
+          est["prefs"]["ORDEN_INTEGRADO"] == "ignorar", est["prefs"])
+
+    prefs = mod._leer_prefs()
+    prefs["JUGADORES_MAX"] = "4"
+    mod._escribir_prefs(prefs)
+    est = await mod.Plugin().estado()
+    check("con hueco -> ultimo", est["prefs"]["ORDEN_INTEGRADO"] == "ultimo",
+          est["prefs"])
+
     # si lo elige el usuario, el automatico no lo pisa
     await mod.Plugin().integrado_modo("primero")
     est = await mod.Plugin().estado()

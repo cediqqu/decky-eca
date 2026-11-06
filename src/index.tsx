@@ -561,7 +561,7 @@ function MandoCuadrado(props: {
                 lineHeight: 1,
               }}
             >
-              Apagado
+              Desactivado
             </div>
           ) : null}
           {mostrarMac && m.serie ? (
@@ -830,13 +830,11 @@ function TarjetaIntegrado(props: {
   onClick: () => void;
 }) {
   const detalle =
-    props.modo === "ignorar"
+    props.modo === "ignorar" || (props.detectado && !props.jugador)
       ? "Desactivado"
-      : props.detectado && !props.jugador
-        ? "Apagado"
-        : props.modo === "primero"
-          ? "Jugador 1"
-          : "Último jugador";
+      : props.modo === "primero"
+        ? "Jugador 1"
+        : "Último jugador";
   return (
     <TarjetaAccion
       color={C.naranja}
