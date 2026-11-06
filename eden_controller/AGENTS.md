@@ -131,7 +131,7 @@ jugadores sobrantes quedan `connected=false`.
 | `eden-plantilla-cemu.xml` | Plantilla de emergencia (Wii U Pro Controller) si no hay `Deck-PN.xml` |
 | `eden-mandos-sdl.sh` | Interroga a libSDL3 (python + ctypes); lista lo que ve Eden |
 | `eden-diagnostico.sh` | Solo lectura; volcado para que el usuario lo pegue |
-| `instalar.sh` | Copia a `~/eden-autoconfig`, repone el hook y verifica SDL |
+| `instalar.sh` | Copia a `~/eden-autoconfig` (incluido `VERSION`), repone el hook y verifica SDL |
 | `es-de-hooks/10-eden-autoconfig.sh` | Hook `game-start`: `switch` → Eden, `gc`/`wii` → Dolphin, `wiiu` → Cemu |
 | `eden-autoconfig.conf.example` | Variables; el `.conf` instalado no se sobreescribe |
 | `README.md` | Guía de usuario; fuente de verdad de los pasos en la consola |
@@ -165,6 +165,8 @@ Orden de llamada: despachador (según `--sistema`) → driver → `main` → `lo
 - Los drivers dejan `plan-<sistema>.txt` (lo lee el panel) y escriben en
   `log.txt`; `nucleo_guardar_plan` / `nucleo_registrar` son los únicos que
   tocan esos ficheros.
+- La version del driver se lee de `VERSION`; `build.sh` la genera y `instalar.sh`
+  la copia. No volver a fijarla a mano en el script.
 - El driver de Eden desactiva el **applet de mandos** (`[LibraryApplet]
   controller_applet_mode=2`) al aplicar: evita la ventana que pide OK al
   iniciar el juego. `forzar_applet_apagado` no toca nada si ya esta en 2.

@@ -799,6 +799,22 @@ class Plugin:
                  _home(), "instalados" if ok else "NO instalados (%s)" % ruta)
         if not ok:
             log.info("Pulsa 'Instalar scripts' en el panel para instalarlos.")
+            return
+        await self._auto_actualizar()
+
+    async def _auto_actualizar(self):
+        """Si los scripts instalados estan viejos o incompletos, los repone."""
+        faltan = _faltan_scripts(_base())
+        has_inst = _hash_scripts(_base())
+        has_bundle = _hash_scripts(SCRIPTS_DIR)
+        if not faltan and (not has_bundle or has_inst == has_bundle):
+            return
+        inst = os.path.join(SCRIPTS_DIR, INSTALADOR)
+        if not os.path.isfile(inst):
+            return
+        log.info("scripts desactualizados: auto-instalando desde el bundle")
+        rc, salida = await _run(["bash", inst], timeout=180)
+        log.info("auto-instalacion: exit %s %s", rc, _corta(salida)[-300:])
 
     async def _unload(self):
         log.info("E.C.A descargado (no se toca ~/eden-autoconfig)")

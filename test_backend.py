@@ -110,6 +110,12 @@ async def main():
     est = await mod.Plugin().estado()
     check("ya no falta nada", est["reparar"] is False and est["desactualizado"] is False)
 
+    # al cargar, el plugin repone solo lo que falte
+    os.remove(os.path.join(base, "eden-driver-cemu.sh"))
+    await mod.Plugin()._main()
+    est = await mod.Plugin().estado()
+    check("auto-repara al cargar", est["reparar"] is False, est.get("faltan"))
+
     # el plan que dejan los drivers se lee para el panel
     with open(os.path.join(base, "plan-wiiu.txt"), "w", encoding="utf-8") as fh:
         fh.write("fecha=2026-01-01 10:00:00\nsistema=wiiu\nmodo=aplicar\n"

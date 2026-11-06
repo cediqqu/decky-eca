@@ -33,6 +33,8 @@ decky-eca/                plugin (plugin.json, main.py, src/, dist/, build.sh…
   configuraciones ya existentes).
 - **Nada de notificaciones del QAM**: los avisos se pintan dentro del panel y se
   borran solos.
+- Al cargar, si los scripts instalados estan viejos o incompletos, el plugin
+  ejecuta `instalar.sh` solo (no hace falta pulsar el boton).
 - El zip lleva **una carpeta raíz `EdenAutoconfig/`** (Decky extrae directamente
   en `~/homebrew/plugins`). Se mantiene ese nombre para que la actualización
   sustituya a la versión anterior.

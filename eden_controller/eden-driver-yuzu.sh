@@ -56,8 +56,11 @@ set -u
 set -o pipefail
 
 PROG="${0##*/}"
-VERSION="1.0"
 HERE="$(cd -- "$(dirname -- "$0")" && pwd -P 2>/dev/null || echo "$PWD")"
+# version real: la escribe build.sh en scripts/VERSION (y copia instalar.sh)
+VERSION="$(sed -n 's/^version:[[:space:]]*//p' "$HERE/VERSION" 2>/dev/null | head -n1)"
+[ -n "$VERSION" ] || VERSION="$(sed -n 's/^version:[[:space:]]*//p' "${EDEN_AUTOCONFIG_DIR:-$HOME/eden-autoconfig}/VERSION" 2>/dev/null | head -n1)"
+VERSION="${VERSION:-desconocida}"
 
 # --------------------------------------------------------------- rutas base
 BASE_DIR="${EDEN_AUTOCONFIG_DIR:-$HOME/eden-autoconfig}"
@@ -1709,6 +1712,11 @@ avisar_guid_no_visto() { # $1 = tipo, $2 = fichero plantilla
 
     hacer_backup "$QC" || return 1
     escribir_atomico "$nuevo" "$QC" || return 1
+    if applet_apagado "$QC"; then
+        log INFO "applet de mandos: desactivado (controller_applet_mode=2)"
+    else
+        log WARN "applet de mandos: NO se pudo desactivar"
+    fi
     say ""
     say "OK: $QC actualizado."
     log INFO "aplicado. plan: $PLAN_JUGADORES ; escenario=$ESCENARIO ds_sdl=$DS_SDL_N ds_bt=$DS_BT_N virt=$VIRT_N"
