@@ -52,7 +52,7 @@ END = "# <<< eden-autoconfig-decky <<<"
 PREF_DEF = {
     "P1_SERIE": "",
     "JUGADORES_MAX": "4",
-    "ORDEN_INTEGRADO": "ignorar",
+    "ORDEN_INTEGRADO": "primero",
     "ORDEN_DUALSENSE": "conexion",
     "RETENCION_BACKUPS": "10",
 }
@@ -184,7 +184,7 @@ def _validar(prefs):
     out["JUGADORES_MAX"] = str(n if 1 <= n <= 4 else 4)
 
     integ = str(prefs.get("ORDEN_INTEGRADO", "ignorar")).strip()
-    out["ORDEN_INTEGRADO"] = integ if integ in INTEGRADOS else "ignorar"
+    out["ORDEN_INTEGRADO"] = integ if integ in INTEGRADOS else "primero"
 
     orden = str(prefs.get("ORDEN_DUALSENSE", "conexion")).strip()
     out["ORDEN_DUALSENSE"] = orden if orden in ORDENES else "conexion"
@@ -317,82 +317,6 @@ def _quitar_bloque():
 
 # ------------------------------------------------------------ mdandos -------
 
-# --------------------------------------------------- estado del plugin ------
-#  Preferencias que no caben en el .conf: sobre todo, que queria el usuario
-#  para el mando integrado cuando lo hemos puesto en "no usar" por falta de
-#  hueco (4 DualSense conectados).
-
-def _estado_json():
-    return os.path.join(_estado_dir(), "estado.json")
-
-
-def _leer_estado_plugin():
-    try:
-        with open(_estado_json(), "r", encoding="utf-8") as fh:
-            datos = json.load(fh)
-        return datos if isinstance(datos, dict) else {}
-    except Exception:
-        return {}
-
-
-def _guardar_estado_plugin(datos):
-    try:
-        os.makedirs(_estado_dir(), exist_ok=True)
-        ruta = _estado_json()
-        tmp = ruta + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(datos, fh, indent=1, ensure_ascii=False)
-            fh.flush()
-            os.fsync(fh.fileno())
-        os.replace(tmp, ruta)
-    except Exception as exc:
-        log.warning("no pude guardar %s: %s", _estado_json(), exc)
-
-
-def _sincronizar_integrado(prefs, ds_n):
-    """Decide el ajuste efectivo del mando integrado.
-
-    - Con 4 DualSense no queda hueco: se pone 'ignorar' y se recuerda lo que
-      queria el usuario para devolverlo cuando desconecte uno.
-    - Si el .conf no tiene lo que dejamos escrito, manda lo que diga el .conf.
-
-    Devuelve (prefs, forzado_por_4_mandos, nota).
-    """
-    st = _leer_estado_plugin()
-    aplicado = st.get("integrado_aplicado")
-    deseado = st.get("integrado_deseado")
-
-    if prefs["ORDEN_INTEGRADO"] != aplicado:
-        deseado = prefs["ORDEN_INTEGRADO"]
-    if deseado not in INTEGRADOS:
-        deseado = prefs["ORDEN_INTEGRADO"] if prefs["ORDEN_INTEGRADO"] in INTEGRADOS else "ignorar"
-
-    nota = ""
-    if ds_n >= 4:
-        efectivo = "ignorar"
-        if deseado != "ignorar":
-            nota = ("4 mandos conectados: el mando integrado pasa a "
-                    "'no usar' automaticamente.")
-    else:
-        efectivo = deseado
-        if prefs["ORDEN_INTEGRADO"] == "ignorar" and deseado != "ignorar":
-            nota = ("Ya no hay 4 mandos: el mando integrado recupera '%s'."
-                    % deseado)
-
-    if prefs["ORDEN_INTEGRADO"] != efectivo:
-        prefs["ORDEN_INTEGRADO"] = efectivo
-        ok, msg = _escribir_prefs(prefs)
-        if not ok:
-            nota = (nota + "\n" if nota else "") + msg
-
-    if st.get("integrado_aplicado") != efectivo or st.get("integrado_deseado") != deseado:
-        st["integrado_aplicado"] = efectivo
-        st["integrado_deseado"] = deseado
-        _guardar_estado_plugin(st)
-
-    return prefs, ds_n >= 4, nota
-
-
 # --------------------------------------------- plan de jugadores (--who) ----
 RE_WHO = re.compile(r"Player\s+(\d+)\s*=\s*(.+?)\s*\(port\s+(\d+)\)", re.I)
 
@@ -435,10 +359,6 @@ def _sincronizar_principal(prefs, ds):
         deseado = ""
         nota = ("El mando principal ya no esta conectado: se libera para que el "
                 "primero disponible sea el Player 1.")
-
-    if not deseado and len(ds) == 1 and ds[0]["serie"]:
-        deseado = ds[0]["serie"]
-        nota = "Un solo mando conectado: se fija como mando principal."
 
     if deseado != original:
         prefs["P1_SERIE"] = deseado
@@ -880,13 +800,9 @@ class Plugin:
         ds = [m for m in mandos if m["clase"] == "DualSense"]
         ds_n = len(ds)
 
-        # 4 mandos = no hay hueco para el integrado (se escribe antes de
-        # pedir el plan, para que el plan ya lo refleje).
-        prefs, integrado_auto, nota = _sincronizar_integrado(prefs, ds_n)
         prefs, nota_principal = _sincronizar_principal(prefs, ds)
-        for n in (nota, nota_principal):
-            if n:
-                aviso = ((aviso + "\n") if aviso else "") + n
+        if nota_principal:
+            aviso = ((aviso + "\n") if aviso else "") + nota_principal
 
         # Los jugadores los decide el script (`--who`): aqui no se reimplementa.
         if ok:
@@ -894,16 +810,19 @@ class Plugin:
                 ["bash", _script(SCRIPT), "--who"], timeout=60)
         plan = _parse_who(salida_who if ok else "")
 
+        limite = int(prefs["JUGADORES_MAX"])
         for m in mandos:
             m["principal"] = bool(prefs["P1_SERIE"]) and m["serie"] == prefs["P1_SERIE"]
             if m["virtual"]:
-                m["jugador"] = plan["virtual"].get(m["puerto"])
+                jug = plan["virtual"].get(m["puerto"])
             elif m["clase"] == "Integrado":
-                m["jugador"] = plan["integrado"]
+                jug = plan["integrado"]
             elif m["clase"] == "DualSense":
-                m["jugador"] = plan["dual"].get(m["puerto"])
+                jug = plan["dual"].get(m["puerto"])
             else:
-                m["jugador"] = None
+                jug = None
+            # el script puede repartir mas jugadores de los configurados
+            m["jugador"] = jug if (jug is not None and jug <= limite) else None
 
         _marcar_principal(mandos, prefs)
 
@@ -932,7 +851,6 @@ class Plugin:
             "escenario": _escenario(mandos),
             "ds_conectados": ds_n,
             "otros_conectados": len([m for m in mandos if m["clase"] == "Otro"]),
-            "integrado_auto": integrado_auto,
             "hook": _hook_instalado(),
             "esde": _esde_eventos(),
             "version": _version_bundle(),
@@ -977,7 +895,28 @@ class Plugin:
         if not serie:
             return await self.estado()
 
-        prefs["P1_SERIE"] = "" if prefs["P1_SERIE"] == serie else serie
+        if prefs["P1_SERIE"] == serie:
+            prefs["P1_SERIE"] = ""
+        else:
+            prefs["P1_SERIE"] = serie
+            # al elegir un mando externo como Player 1, el integrado se aparta
+            prefs["ORDEN_INTEGRADO"] = "ignorar"
+        ok, msg = _escribir_prefs(prefs)
+        estado = await self.estado()
+        if not ok:
+            estado["aviso"] = msg
+        return estado
+
+    async def integrado_modo(self, modo):
+        """Elige el hueco del mando integrado: primero | ultimo | ignorar."""
+        modo = (modo or "").strip()
+        if modo not in INTEGRADOS:
+            return await self.estado()
+        prefs = _leer_prefs()
+        prefs["ORDEN_INTEGRADO"] = modo
+        if modo == "primero":
+            # el integrado pasa a Player 1 y los externos se corren un puesto
+            prefs["P1_SERIE"] = ""
         ok, msg = _escribir_prefs(prefs)
         estado = await self.estado()
         if not ok:
@@ -985,31 +924,7 @@ class Plugin:
         return estado
 
     async def ciclar(self, clave):
-        """Cicla un ajuste: 'max' | 'integrado'."""
-        if clave == "integrado":
-            actual = await self.estado()
-            if actual.get("integrado_auto"):
-                actual["aviso"] = ((actual["aviso"] + "\n") if actual["aviso"] else "") + (
-                    "Con 4 mandos conectados el mando integrado no se usa.\n"
-                    "Desconecta uno para poder cambiarlo.")
-                return actual
-
-            prefs = actual["prefs"]
-            i = INTEGRADOS.index(prefs["ORDEN_INTEGRADO"])
-            prefs["ORDEN_INTEGRADO"] = INTEGRADOS[(i + 1) % len(INTEGRADOS)]
-            ok, msg = _escribir_prefs(prefs)
-
-            # lo que el usuario elige a mano pasa a ser su preferencia
-            st = _leer_estado_plugin()
-            st["integrado_deseado"] = prefs["ORDEN_INTEGRADO"]
-            st["integrado_aplicado"] = prefs["ORDEN_INTEGRADO"]
-            _guardar_estado_plugin(st)
-
-            nuevo = await self.estado()
-            if not ok:
-                nuevo["aviso"] = msg
-            return nuevo
-
+        """Cicla la cantidad de jugadores ('max')."""
         prefs = _leer_prefs()
 
         if clave == "max":

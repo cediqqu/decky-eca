@@ -35,7 +35,7 @@ JUGADORES_MAX=4
 #   primero = el integrado es P1 y los DualSense van detras (P1 estable y
 #             siempre identificable: el propio mando de la consola)
 #   ultimo  = los DualSense primero y el integrado como jugador extra al final
-ORDEN_INTEGRADO="ignorar"
+ORDEN_INTEGRADO="primero"
 
 # Tipo de mando emulado por Eden. 0 = Pro Controller (lo normal).
 TIPO_CONTROLADOR="0"

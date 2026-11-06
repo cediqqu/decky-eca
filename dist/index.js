@@ -216,11 +216,6 @@ function macCorta(serie) {
     }
     return serie;
 }
-const INTEGRADO_TXT = {
-    ignorar: "no usar",
-    primero: "Player 1",
-    ultimo: "ultimo jugador",
-};
 const ESTILOS = `
 @keyframes ede-latido {
   0%, 100% { opacity: .88; transform: scale(1); }
@@ -361,24 +356,6 @@ function GlifoA() {
             flex: "0 0 auto",
         }, children: "A" }));
 }
-function Chip(props) {
-    const color = props.color ?? C.azul;
-    return (SP_JSX.jsxs("span", { style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            padding: "2px 8px",
-            borderRadius: "999px",
-            fontSize: "0.66em",
-            fontWeight: 700,
-            letterSpacing: "0.02em",
-            whiteSpace: "nowrap",
-            color: props.tenue ? "inherit" : color,
-            opacity: props.tenue ? 0.75 : 1,
-            border: `1px solid ${props.tenue ? "rgba(128,128,128,0.4)" : hexA(color, 0.5)}`,
-            background: props.tenue ? "rgba(128,128,128,0.14)" : hexA(color, 0.14),
-        }, children: [props.icono, props.texto] }));
-}
 function IconoConexion(props) {
     const s = props.size ?? 9;
     if (props.conexion.startsWith("Bluetooth"))
@@ -461,29 +438,6 @@ function estiloTarjeta(principal, color) {
         transition: "border-color 180ms ease, box-shadow 180ms ease",
     };
 }
-// --- tarjeta ancha (1 mando) ----------------------------------------------
-function FilaMando(props) {
-    const { m, mostrarMac, destello, onClick } = props;
-    const color = colorDe(m);
-    return (SP_JSX.jsx(BotonTarjeta, { onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
-                ...estiloTarjeta(m.es_principal, color),
-                ...(destello
-                    ? {
-                        border: `1px solid ${C.azul}`,
-                        boxShadow: `0 0 16px ${hexA(C.azul, 0.6)}`,
-                    }
-                    : null),
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "9px 46px 9px 9px",
-            }, children: [SP_JSX.jsx(Badge, { m: m }), SP_JSX.jsx(IconoTile, { m: m, lado: 36 }), SP_JSX.jsxs("div", { style: { minWidth: 0 }, children: [SP_JSX.jsxs("div", { style: {
-                                display: "flex",
-                                alignItems: "baseline",
-                                gap: "6px",
-                                flexWrap: "wrap",
-                            }, children: [m.familia === "desconocido" ? (SP_JSX.jsx("span", { style: { fontWeight: 700, fontSize: "0.95em" }, children: m.sdl || m.nombre || m.clase })) : null, mostrarMac && m.serie ? (SP_JSX.jsx("span", { style: { fontSize: "0.58em", color: C.texto2, opacity: 0.55 }, children: macCorta(m.serie) })) : null] }), SP_JSX.jsx("div", { style: { marginTop: "4px" }, children: SP_JSX.jsx(Chip, { texto: m.conexion, color: colorConexion(m.conexion), icono: SP_JSX.jsx(IconoConexion, { conexion: m.conexion, size: 9 }) }) })] })] }) }));
-}
 // --- tarjeta cuadrada (2 o mas mandos) -------------------------------------
 function MandoCuadrado(props) {
     const { m, mostrarMac, destello, onClick } = props;
@@ -518,7 +472,12 @@ function MandoCuadrado(props) {
                                 gap: "3px",
                                 fontSize: "0.6em",
                                 color: colorConexion(m.conexion),
-                            }, children: [SP_JSX.jsx(IconoConexion, { conexion: m.conexion, size: 8 }), m.conexion] }), mostrarMac && m.serie ? (SP_JSX.jsx("div", { style: {
+                            }, children: [SP_JSX.jsx(IconoConexion, { conexion: m.conexion, size: 8 }), m.conexion] }), !m.jugador ? (SP_JSX.jsx("div", { style: {
+                                fontSize: "0.55em",
+                                color: C.gris,
+                                opacity: 0.85,
+                                lineHeight: 1,
+                            }, children: "Apagado" })) : null, mostrarMac && m.serie ? (SP_JSX.jsx("div", { style: {
                                 fontSize: "0.53em",
                                 color: C.texto2,
                                 opacity: 0.5,
@@ -637,6 +596,15 @@ function ChipEstado(props) {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                 }, children: props.texto })] }));
+}
+// --- tarjeta del mando integrado -------------------------------------------
+function TarjetaIntegrado(props) {
+    const detalle = props.modo === "ignorar"
+        ? "Desactivado"
+        : props.jugador
+            ? `Jugador ${props.jugador}`
+            : "Apagado";
+    return (SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: props.icono, anim: "pop", titulo: "Integrado", detalle: detalle, onClick: props.onClick }));
 }
 function IconoTarjeta(props) {
     return (SP_JSX.jsx("span", { className: "ede-icono-tile", children: SP_JSX.jsx("span", { className: `ede-anim-${props.anim ?? "pop"}`, children: SP_JSX.jsx("span", { className: "ede-icono-caja", style: {
@@ -777,6 +745,35 @@ function VentanaAsignacion(props) {
                             lineHeight: 1.4,
                         }, children: [bloque("wiiu", "Cemu (Wii U)"), bloque("dolphin", "Dolphin (GC/Wii)"), nota ? (SP_JSX.jsx("div", { style: { marginTop: "6px", opacity: 0.75, fontSize: "0.9em" }, children: nota })) : null] }) }) }), SP_JSX.jsxs(DFL.DialogFooter, { children: [SP_JSX.jsx(DFL.DialogButton, { disabled: ocupado, onClick: () => void comprobar(), children: ocupado ? "Comprobando…" : "Comprobar ahora" }), SP_JSX.jsx(DFL.DialogButtonPrimary, { onClick: props.onCerrar, children: "Cerrar" })] })] }));
 }
+// ---------------------------------------------------------------------------
+//  Elegir hueco del mando integrado
+// ---------------------------------------------------------------------------
+const OPCIONES_INTEGRADO = [
+    ["primero", "Jugador 1"],
+    ["ultimo", "Último jugador"],
+    ["ignorar", "Desactivado"],
+];
+function VentanaIntegrado(props) {
+    return (SP_JSX.jsxs(DFL.ModalRoot, { strTitle: "Mando integrado", bAllowFullSize: true, onCancel: props.onCerrar, children: [SP_JSX.jsxs(DFL.DialogBody, { children: [SP_JSX.jsx(DFL.DialogBodyText, { children: "\u00BFD\u00F3nde quieres el mando integrado?" }), SP_JSX.jsx("div", { style: {
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                            marginTop: "10px",
+                        }, children: OPCIONES_INTEGRADO.map(([valor, titulo]) => (SP_JSX.jsx(DFL.DialogButton, { onClick: () => props.onElegir(valor), style: { width: "100%" }, children: SP_JSX.jsxs("div", { style: {
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    width: "100%",
+                                }, children: [SP_JSX.jsx("span", { style: { fontWeight: 700 }, children: titulo }), props.modo === valor ? (SP_JSX.jsx("span", { style: { color: C.verde, display: "flex" }, children: SP_JSX.jsx(FaCheck, { size: 12 }) })) : null] }) }, valor))) })] }), SP_JSX.jsx(DFL.DialogFooter, { children: SP_JSX.jsx(DFL.DialogButtonPrimary, { onClick: props.onCerrar, children: "Cerrar" }) })] }));
+}
+function abrirIntegrado(modo, onElegir) {
+    const cierre = { f: () => { } };
+    const res = DFL.showModal(SP_JSX.jsx(VentanaIntegrado, { modo: modo, onElegir: (v) => {
+            cierre.f();
+            onElegir(v);
+        }, onCerrar: () => cierre.f() }));
+    cierre.f = res.Close;
+}
 function abrirAsignacion(planes, onNuevo) {
     const cierre = { f: () => { } };
     const res = DFL.showModal(SP_JSX.jsx(VentanaAsignacion, { planes: planes, onCerrar: () => cierre.f(), onNuevo: onNuevo }));
@@ -888,12 +885,6 @@ function Content() {
             avisar(`${p?.sdl || p?.nombre || "Mando"} es ahora el principal`);
         }
     });
-    const ciclar = (clave) => conBloqueo(async () => {
-        const nuevo = await call("ciclar", clave);
-        setEst(nuevo);
-        if (nuevo.aviso)
-            avisar(nuevo.aviso);
-    });
     const cambiarJugadores = () => conBloqueo(async () => {
         const nuevo = await call("ciclar", "max");
         setEst(nuevo);
@@ -902,6 +893,12 @@ function Content() {
         const n = Number(nuevo.prefs.JUGADORES_MAX);
         setPulsoMando(n);
         setTimeout(() => setPulsoMando(0), 520);
+    });
+    const elegirIntegrado = (modo) => conBloqueo(async () => {
+        const nuevo = await call("integrado_modo", modo);
+        setEst(nuevo);
+        if (nuevo.aviso)
+            avisar(nuevo.aviso);
     });
     const aplicar = () => conBloqueo(async () => {
         const r = await call("aplicar");
@@ -933,9 +930,11 @@ function Content() {
         return (SP_JSX.jsx(DFL.PanelSection, { title: "E.C.A", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "Leyendo mandos..." }) }) }));
     }
     const p = est.prefs;
-    const cuadricula = est.mandos.length >= 2;
-    const integradoNombre = est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
+    const integrado = est.mandos.find((m) => m.clase === "Integrado") ?? null;
+    const externos = est.mandos.filter((m) => m.clase !== "Integrado");
+    const integradoNombre = integrado?.nombre ?? "";
     const maquinaNombre = nombreMaquina(est.maquina);
+    const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
     const acento = C.azul;
     // la MAC solo cuando hay mas de un mando del mismo tipo
     const repetidos = (clase) => est.mandos.filter((x) => x.clase === clase).length > 1;
@@ -986,23 +985,28 @@ function Content() {
                                     }, children: [1, 2, 3, 4].map((n) => {
                                         const on = n <= Number(p.JUGADORES_MAX);
                                         return (SP_JSX.jsx("span", { className: `ede-slot ${on ? "on" : "off"}${pulsoMando === n ? " pulso" : ""}`, style: on ? { color: COLOR_JUGADOR[n - 1] } : undefined, children: SP_JSX.jsx(FaGamepad, { size: 15 }) }, n));
-                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, children: [est.mandos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : cuadricula ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
+                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, children: [!mostrarIntegrado && externos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                                 display: "grid",
                                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                                 gap: "6px",
                                 width: "100%",
-                            }, children: est.mandos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
-                                    minWidth: 0,
-                                    maxWidth: "100%",
-                                    overflow: "hidden",
-                                    borderRadius: "16px",
-                                }, children: SP_JSX.jsx(MandoCuadrado, { m: m, mostrarMac: repetidos(m.clase), destello: destello === m.serie, onClick: () => tocarMando(m) }) }, `${m.guid}-${m.puerto}`))) }) })) : (est.mandos.map((m) => (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(FilaMando, { m: m, mostrarMac: repetidos(m.clase), destello: destello === m.serie, onClick: () => tocarMando(m) }) }, `${m.guid}-${m.puerto}`)))), aviso ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", onClick: limpiarAviso, children: aviso }) })) : null, est.ds_conectados > Number(p.JUGADORES_MAX) ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { fontSize: "0.68em", color: C.dorado }, children: ["Se configuran ", p.JUGADORES_MAX, " de ", est.ds_conectados, " mandos. Cambialo en Ajustes \u2192 Mandos a configurar."] }) })) : null, est.mandos.length > 1 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                            }, children: [mostrarIntegrado ? (SP_JSX.jsx("div", { className: "ede-celda", style: {
+                                        minWidth: 0,
+                                        maxWidth: "100%",
+                                        overflow: "hidden",
+                                        borderRadius: "16px",
+                                    }, children: SP_JSX.jsx(TarjetaIntegrado, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), jugador: integrado?.jugador ?? null, modo: p.ORDEN_INTEGRADO, onClick: () => abrirIntegrado(p.ORDEN_INTEGRADO, elegirIntegrado) }) })) : null, externos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
+                                        minWidth: 0,
+                                        maxWidth: "100%",
+                                        overflow: "hidden",
+                                        borderRadius: "16px",
+                                    }, children: SP_JSX.jsx(MandoCuadrado, { m: m, mostrarMac: repetidos(m.clase), destello: destello === m.serie, onClick: () => tocarMando(m) }) }, `${m.guid}-${m.puerto}`)))] }) })), aviso ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", onClick: limpiarAviso, children: aviso }) })) : null, est.ds_conectados > Number(p.JUGADORES_MAX) ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { fontSize: "0.68em", color: C.dorado }, children: ["Se configuran ", p.JUGADORES_MAX, " de ", est.ds_conectados, " mandos. Cambialo en Ajustes \u2192 Mandos a configurar."] }) })) : null, est.mandos.length > 1 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { color: C.azul, icono: SP_JSX.jsx(FaSyncAlt, { size: 16 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), anim: "pop", titulo: "Integrado", detalle: `${maquinaNombre ? `${maquinaNombre} · ` : ""}${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { color: C.azul, icono: SP_JSX.jsx(FaSyncAlt, { size: 16 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {

@@ -26,7 +26,7 @@ nucleo_prefs() {
         . "$conf" >/dev/null 2>&1 || true
     fi
     JUGADORES_MAX="${JUGADORES_MAX:-4}"
-    ORDEN_INTEGRADO="${ORDEN_INTEGRADO:-ignorar}"
+    ORDEN_INTEGRADO="${ORDEN_INTEGRADO:-primero}"
     P1_SERIE="${P1_SERIE:-}"
     DUALSENSE_PATRON="${DUALSENSE_PATRON:-*wireless controller*|*dualsense*}"
     INTEGRADO_PATRON="${INTEGRADO_PATRON:-*rog*|*ally*|*asus*|*hid-asus*|*microsoft x-box 360 pad*|*steam deck*|*deck controller*}"

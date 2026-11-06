@@ -75,7 +75,7 @@ EDEN_APPIMAGE="${EDEN_APPIMAGE:-}"       # ruta explicita al AppImage de Eden (o
 PERFIL="${PERFIL:-emudeck}"              # nombre del perfil de Eden a clonar
 USAR_PERFIL="${USAR_PERFIL:-auto}"       # auto|si|no  (auto: usar plantilla guardada si existe, si no el perfil)
 JUGADORES_MAX="${JUGADORES_MAX:-4}"      # numero maximo de DualSense a asignar (1..4)
-ORDEN_INTEGRADO="${ORDEN_INTEGRADO:-ignorar}"   # ignorar | primero | ultimo
+ORDEN_INTEGRADO="${ORDEN_INTEGRADO:-primero}"   # ignorar | primero | ultimo
 TIPO_CONTROLADOR="${TIPO_CONTROLADOR:-0}"       # 0 = Pro Controller (valor de player_N_type)
 
 GUID_DUALSENSE="${GUID_DUALSENSE:-}"     # si no esta vacio, se fuerza ese guid en los jugadores DualSense
@@ -1060,7 +1060,11 @@ planificar_sdl() {
     PLAN_JUGADORES=""
     local resumen="" i=0 primero_int=0 par pg t k
 
-    case "$ORDEN_INTEGRADO" in ignorar) INCLUIR_INT=0 ;; *) INCLUIR_INT=1 ;; esac
+    case "$ORDEN_INTEGRADO" in
+        ignorar) INCLUIR_INT=0 ;;
+        primero) INCLUIR_INT=1; primero_int=1 ;;
+        *)       INCLUIR_INT=1 ;;
+    esac
     # si no hay ningun DualSense, el integrado entra como P1
     if [ "${DS_SDL_N:-0}" -eq 0 ] && [ "${INTEGRADO_N:-0}" -gt 0 ]; then
         INCLUIR_INT=1

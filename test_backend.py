@@ -167,6 +167,8 @@ async def main():
     princ = [m for m in est["mandos"] if m["principal"]]
     check("un unico principal",
           len(princ) == 1 and princ[0]["serie"] == "4c:b9:9b:e9:bc:26", princ)
+    check("elegir un externo aparta el integrado",
+          est["prefs"]["ORDEN_INTEGRADO"] == "ignorar", est["prefs"])
 
     estado_dir = os.path.join(home, ".config", "eden-autoconfig-decky")
     check("backup del .conf fuera del proyecto",
@@ -193,12 +195,15 @@ async def main():
         est = await mod.Plugin().ciclar("max")
     check("max vuelve a 4", est["prefs"]["JUGADORES_MAX"] == "4", est["prefs"])
 
-    est = await mod.Plugin().ciclar("integrado")
-    check("integrado -> primero", est["prefs"]["ORDEN_INTEGRADO"] == "primero")
-    est = await mod.Plugin().ciclar("integrado")
+    est = await mod.Plugin().integrado_modo("primero")
+    check("integrado -> Jugador 1", est["prefs"]["ORDEN_INTEGRADO"] == "primero")
+    check("Jugador 1 limpia el principal externo", est["prefs"]["P1_SERIE"] == "")
+    est = await mod.Plugin().integrado_modo("ultimo")
     check("integrado -> ultimo", est["prefs"]["ORDEN_INTEGRADO"] == "ultimo")
-    est = await mod.Plugin().ciclar("integrado")
-    check("integrado -> ignorar", est["prefs"]["ORDEN_INTEGRADO"] == "ignorar")
+    est = await mod.Plugin().integrado_modo("ignorar")
+    check("integrado -> desactivado", est["prefs"]["ORDEN_INTEGRADO"] == "ignorar")
+    est = await mod.Plugin().integrado_modo("loquesea")
+    check("modo invalido no rompe", est["ok"] is True)
 
     est = await mod.Plugin().ciclar("clave-que-no-existe")
     check("clave desconocida no rompe", est["ok"] is True)
@@ -289,6 +294,7 @@ async def main():
         )
     os.environ["EDEN_FAKE_SDL"] = plan
 
+    await mod.Plugin().integrado_modo("ignorar")
     est = await mod.Plugin().estado()
     ds = [m for m in est["mandos"] if m["clase"] == "DualSense"]
     check("P1 y P2 salen del script", [m["jugador"] for m in ds] == [1, 2],
@@ -298,8 +304,7 @@ async def main():
           [(m["clase"], m["jugador"]) for m in est["mandos"]])
 
     # con el integrado como ultimo, el script le da el Player 3
-    for _ in range(2):                      # ignorar -> primero -> ultimo
-        await mod.Plugin().ciclar("integrado")
+    await mod.Plugin().integrado_modo("ultimo")
     est = await mod.Plugin().estado()
     integ = [m for m in est["mandos"] if m["clase"] == "Integrado"]
     check("integrado como Player 3", integ and integ[0]["jugador"] == 3,
@@ -321,28 +326,19 @@ async def main():
 
     est = await mod.Plugin().estado()
     check("4 DualSense detectados", est["ds_conectados"] == 4, est["ds_conectados"])
-    check("integrado pasa a ignorar", est["prefs"]["ORDEN_INTEGRADO"] == "ignorar",
-          est["prefs"])
-    check("marcado como automatico", est["integrado_auto"] is True)
-    check("avisa del cambio", "4 mandos" in est["aviso"], est["aviso"])
+    check("la eleccion no se toca",
+          est["prefs"]["ORDEN_INTEGRADO"] == "ultimo", est["prefs"])
     ds = [m for m in est["mandos"] if m["clase"] == "DualSense"]
     check("los 4 son P1..P4", [m["jugador"] for m in ds] == [1, 2, 3, 4],
           [(m["puerto"], m["jugador"]) for m in ds])
     integ = [m for m in est["mandos"] if m["clase"] == "Integrado"]
     check("integrado fuera del plan", integ and integ[0]["jugador"] is None)
 
-    est = await mod.Plugin().ciclar("integrado")
-    check("no se puede cambiar con 4 mandos",
-          est["prefs"]["ORDEN_INTEGRADO"] == "ignorar"
-          and "4 mandos" in est["aviso"], est["aviso"])
-
-    # vuelven a quedar 2: se restaura lo que habia elegido
+    # vuelven a quedar 2: el integrado recupera su hueco solo
     os.environ["EDEN_FAKE_SDL"] = plan
     est = await mod.Plugin().estado()
-    check("restaura la eleccion anterior",
-          est["prefs"]["ORDEN_INTEGRADO"] == "ultimo", est["prefs"])
-    check("ya no es automatico", est["integrado_auto"] is False)
-    check("avisa de la restauracion", "recupera" in est["aviso"], est["aviso"])
+    check("sigue en ultimo", est["prefs"]["ORDEN_INTEGRADO"] == "ultimo",
+          est["prefs"])
     integ = [m for m in est["mandos"] if m["clase"] == "Integrado"]
     check("vuelve a ser Player 3", integ and integ[0]["jugador"] == 3, est["prefs"])
 
@@ -375,23 +371,21 @@ async def main():
 
     os.environ["EDEN_FAKE_SDL"] = uno
     est = await mod.Plugin().estado()
-    check("fija el unico mando",
-          est["prefs"]["P1_SERIE"] == "4c:b9:9b:e9:bc:26", est["prefs"])
+    check("no se fija solo", est["prefs"]["P1_SERIE"] == "", est["prefs"])
     ds = [m for m in est["mandos"] if m["clase"] == "DualSense"]
-    check("estrella en el unico mando", ds and ds[0]["es_principal"] is True,
+    check("estrella en el Player 1", ds and ds[0]["es_principal"] is True,
           [(m["clase"], m["es_principal"]) for m in est["mandos"]])
-    check("avisa de la fijacion", "mando principal" in est["aviso"], est["aviso"])
+    check("sin aviso de fijacion", "mando principal" not in est["aviso"],
+          est["aviso"])
 
     os.environ["EDEN_FAKE_SDL"] = plan        # ahora dos DualSense
     est = await mod.Plugin().estado()
-    check("se mantiene al anadir otro",
-          est["prefs"]["P1_SERIE"] == "4c:b9:9b:e9:bc:26", est["prefs"])
-    princip = [m for m in est["mandos"] if m["es_principal"]]
-    check("estrella en el principal fijado",
-          len(princip) == 1 and princip[0]["serie"] == "4c:b9:9b:e9:bc:26",
-          [(m["serie"], m["es_principal"]) for m in est["mandos"]])
+    check("sigue sin principal fijado", est["prefs"]["P1_SERIE"] == "",
+          est["prefs"])
 
-    # el principal desaparece -> se libera
+    # fijado a mano: si desaparece, se libera
+    await mod.Plugin().alternar_principal("4c:b9:9b:e9:bc:26")
+
     tres = os.path.join(tmp, "tres.txt")
     with open(tres, "w", encoding="utf-8") as fh:
         fh.write(

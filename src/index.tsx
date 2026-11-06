@@ -93,7 +93,6 @@ type Estado = {
   escenario: string;
   ds_conectados: number;
   otros_conectados: number;
-  integrado_auto: boolean;
   hook: boolean;
   esde: boolean | null;
   version: string;
@@ -197,12 +196,6 @@ function macCorta(serie: string): string {
   }
   return serie;
 }
-
-const INTEGRADO_TXT: Record<string, string> = {
-  ignorar: "no usar",
-  primero: "Player 1",
-  ultimo: "ultimo jugador",
-};
 
 const ESTILOS = `
 @keyframes ede-latido {
@@ -383,36 +376,6 @@ function GlifoA() {
   );
 }
 
-function Chip(props: {
-  texto: string;
-  color?: string;
-  tenue?: boolean;
-  icono?: ReactNode;
-}) {
-  const color = props.color ?? C.azul;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "4px",
-        padding: "2px 8px",
-        borderRadius: "999px",
-        fontSize: "0.66em",
-        fontWeight: 700,
-        letterSpacing: "0.02em",
-        whiteSpace: "nowrap",
-        color: props.tenue ? "inherit" : color,
-        opacity: props.tenue ? 0.75 : 1,
-        border: `1px solid ${props.tenue ? "rgba(128,128,128,0.4)" : hexA(color, 0.5)}`,
-        background: props.tenue ? "rgba(128,128,128,0.14)" : hexA(color, 0.14),
-      }}
-    >
-      {props.icono}
-      {props.texto}
-    </span>
-  );
-}
 
 function IconoConexion(props: { conexion: string; size?: number }) {
   const s = props.size ?? 9;
@@ -517,68 +480,6 @@ function estiloTarjeta(principal: boolean, color: string): CSSProperties {
   };
 }
 
-// --- tarjeta ancha (1 mando) ----------------------------------------------
-function FilaMando(props: {
-  m: Mando;
-  mostrarMac: boolean;
-  destello: boolean;
-  onClick: () => void;
-}) {
-  const { m, mostrarMac, destello, onClick } = props;
-  const color = colorDe(m);
-  return (
-    <BotonTarjeta onClick={onClick}>
-      <div
-        className="ede-tarjeta"
-        style={{
-          ...estiloTarjeta(m.es_principal, color),
-          ...(destello
-            ? {
-                border: `1px solid ${C.azul}`,
-                boxShadow: `0 0 16px ${hexA(C.azul, 0.6)}`,
-              }
-            : null),
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "9px 46px 9px 9px",
-        }}
-      >
-        <Badge m={m} />
-        <IconoTile m={m} lado={36} />
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: "6px",
-              flexWrap: "wrap",
-            }}
-          >
-            {m.familia === "desconocido" ? (
-              <span style={{ fontWeight: 700, fontSize: "0.95em" }}>
-                {m.sdl || m.nombre || m.clase}
-              </span>
-            ) : null}
-            {mostrarMac && m.serie ? (
-              <span style={{ fontSize: "0.58em", color: C.texto2, opacity: 0.55 }}>
-                {macCorta(m.serie)}
-              </span>
-            ) : null}
-          </div>
-          <div style={{ marginTop: "4px" }}>
-            <Chip
-              texto={m.conexion}
-              color={colorConexion(m.conexion)}
-              icono={<IconoConexion conexion={m.conexion} size={9} />}
-            />
-          </div>
-        </div>
-      </div>
-    </BotonTarjeta>
-  );
-}
-
 // --- tarjeta cuadrada (2 o mas mandos) -------------------------------------
 function MandoCuadrado(props: {
   m: Mando;
@@ -635,6 +536,18 @@ function MandoCuadrado(props: {
             <IconoConexion conexion={m.conexion} size={8} />
             {m.conexion}
           </div>
+          {!m.jugador ? (
+            <div
+              style={{
+                fontSize: "0.55em",
+                color: C.gris,
+                opacity: 0.85,
+                lineHeight: 1,
+              }}
+            >
+              Apagado
+            </div>
+          ) : null}
           {mostrarMac && m.serie ? (
             <div
               style={{
@@ -869,6 +782,31 @@ function ChipEstado(props: { icono: ReactNode; texto: string; color: string }) {
         {props.texto}
       </span>
     </div>
+  );
+}
+
+// --- tarjeta del mando integrado -------------------------------------------
+function TarjetaIntegrado(props: {
+  icono: ReactNode;
+  jugador: number | null;
+  modo: string;
+  onClick: () => void;
+}) {
+  const detalle =
+    props.modo === "ignorar"
+      ? "Desactivado"
+      : props.jugador
+        ? `Jugador ${props.jugador}`
+        : "Apagado";
+  return (
+    <TarjetaAccion
+      color={C.naranja}
+      icono={props.icono}
+      anim="pop"
+      titulo="Integrado"
+      detalle={detalle}
+      onClick={props.onClick}
+    />
   );
 }
 
@@ -1250,6 +1188,79 @@ function VentanaAsignacion(props: {
   );
 }
 
+// ---------------------------------------------------------------------------
+//  Elegir hueco del mando integrado
+// ---------------------------------------------------------------------------
+const OPCIONES_INTEGRADO: [string, string][] = [
+  ["primero", "Jugador 1"],
+  ["ultimo", "Último jugador"],
+  ["ignorar", "Desactivado"],
+];
+
+function VentanaIntegrado(props: {
+  modo: string;
+  onElegir: (modo: string) => void;
+  onCerrar: () => void;
+}) {
+  return (
+    <ModalRoot strTitle="Mando integrado" bAllowFullSize onCancel={props.onCerrar}>
+      <DialogBody>
+        <DialogBodyText>¿Dónde quieres el mando integrado?</DialogBodyText>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            marginTop: "10px",
+          }}
+        >
+          {OPCIONES_INTEGRADO.map(([valor, titulo]) => (
+            <DialogButton
+              key={valor}
+              onClick={() => props.onElegir(valor)}
+              style={{ width: "100%" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>{titulo}</span>
+                {props.modo === valor ? (
+                  <span style={{ color: C.verde, display: "flex" }}>
+                    <FaCheck size={12} />
+                  </span>
+                ) : null}
+              </div>
+            </DialogButton>
+          ))}
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <DialogButtonPrimary onClick={props.onCerrar}>Cerrar</DialogButtonPrimary>
+      </DialogFooter>
+    </ModalRoot>
+  );
+}
+
+function abrirIntegrado(modo: string, onElegir: (m: string) => void) {
+  const cierre = { f: () => {} };
+  const res = showModal(
+    <VentanaIntegrado
+      modo={modo}
+      onElegir={(v) => {
+        cierre.f();
+        onElegir(v);
+      }}
+      onCerrar={() => cierre.f()}
+    />
+  );
+  cierre.f = res.Close;
+}
+
 function abrirAsignacion(
   planes: Record<string, Plan | null>,
   onNuevo: (e: Estado) => void
@@ -1384,13 +1395,6 @@ function Content() {
       }
     });
 
-  const ciclar = (clave: string) =>
-    conBloqueo(async () => {
-      const nuevo = await call<[string], Estado>("ciclar", clave);
-      setEst(nuevo);
-      if (nuevo.aviso) avisar(nuevo.aviso);
-    });
-
   const cambiarJugadores = () =>
     conBloqueo(async () => {
       const nuevo = await call<[string], Estado>("ciclar", "max");
@@ -1399,6 +1403,13 @@ function Content() {
       const n = Number(nuevo.prefs.JUGADORES_MAX);
       setPulsoMando(n);
       setTimeout(() => setPulsoMando(0), 520);
+    });
+
+  const elegirIntegrado = (modo: string) =>
+    conBloqueo(async () => {
+      const nuevo = await call<[string], Estado>("integrado_modo", modo);
+      setEst(nuevo);
+      if (nuevo.aviso) avisar(nuevo.aviso);
     });
 
   const aplicar = () =>
@@ -1464,10 +1475,12 @@ function Content() {
   }
 
   const p = est.prefs;
-  const cuadricula = est.mandos.length >= 2;
-  const integradoNombre =
-    est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
+  const integrado =
+    est.mandos.find((m) => m.clase === "Integrado") ?? null;
+  const externos = est.mandos.filter((m) => m.clase !== "Integrado");
+  const integradoNombre = integrado?.nombre ?? "";
   const maquinaNombre = nombreMaquina(est.maquina);
+  const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
   const acento = C.azul;
 
   // la MAC solo cuando hay mas de un mando del mismo tipo
@@ -1637,13 +1650,13 @@ function Content() {
         icono={<FaGamepad size={13} />}
         abierta={true}
       >
-        {est.mandos.length === 0 ? (
+        {!mostrarIntegrado && externos.length === 0 ? (
           <PanelSectionRow>
             <div style={{ opacity: 0.8 }}>
               No se detecta ningun mando. Enciende el mando y pulsa Recargar.
             </div>
           </PanelSectionRow>
-        ) : cuadricula ? (
+        ) : (
           <PanelSectionRow>
             <div
               style={{
@@ -1653,7 +1666,32 @@ function Content() {
                 width: "100%",
               }}
             >
-              {est.mandos.map((m) => (
+              {mostrarIntegrado ? (
+                <div
+                  className="ede-celda"
+                  style={{
+                    minWidth: 0,
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    borderRadius: "16px",
+                  }}
+                >
+                  <TarjetaIntegrado
+                    icono={
+                      <IconoMaquina
+                        maquina={est.maquina}
+                        nombre={integradoNombre}
+                      />
+                    }
+                    jugador={integrado?.jugador ?? null}
+                    modo={p.ORDEN_INTEGRADO}
+                    onClick={() =>
+                      abrirIntegrado(p.ORDEN_INTEGRADO, elegirIntegrado)
+                    }
+                  />
+                </div>
+              ) : null}
+              {externos.map((m) => (
                 <div
                   key={`${m.guid}-${m.puerto}`}
                   className="ede-celda"
@@ -1674,17 +1712,6 @@ function Content() {
               ))}
             </div>
           </PanelSectionRow>
-        ) : (
-          est.mandos.map((m) => (
-            <PanelSectionRow key={`${m.guid}-${m.puerto}`}>
-              <FilaMando
-                m={m}
-                mostrarMac={repetidos(m.clase)}
-                destello={destello === m.serie}
-                onClick={() => tocarMando(m)}
-              />
-            </PanelSectionRow>
-          ))
         )}
         {aviso ? (
           <PanelSectionRow>
@@ -1746,23 +1773,6 @@ function Content() {
         onToggle={() => toggle("ajustes")}
       >
         <Rejilla>
-          <div className="ede-celda">
-            <TarjetaAccion
-              color={C.naranja}
-              icono={
-                <IconoMaquina
-                  maquina={est.maquina}
-                  nombre={integradoNombre}
-                />
-              }
-              anim="pop"
-              titulo="Integrado"
-              detalle={`${maquinaNombre ? `${maquinaNombre} · ` : ""}${
-                INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO
-              }${est.integrado_auto ? " (auto)" : ""}`}
-              onClick={() => ciclar("integrado")}
-            />
-          </div>
           <div className="ede-celda">
             <TarjetaAccion
               color={C.verde}
