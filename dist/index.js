@@ -231,13 +231,22 @@ const ESTILOS = `
   to   { opacity: 1; transform: none; }
 }
 .ede-estrella { animation: ede-latido 2.6s ease-in-out infinite; }
-/* el boton de la celda no necesita padding propio: lo pone la tarjeta */
-.ede-celda > div { padding: 0 !important; border-radius: 16px !important; }
-/* capa de foco de Steam: mas suave y dentro de la tarjeta */
-.ede-zona .gpfocus { background: rgba(255,255,255,0.05) !important; border-radius: 14px !important; }
+/* el boton de Steam no pinta nada: solo se ve la tarjeta de dentro */
+.ede-boton > div,
+.ede-celda > div {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+}
+.ede-boton > div:hover,
+.ede-boton > div.gpfocus {
+  background: transparent !important;
+  box-shadow: none !important;
+}
 /* --- tarjetas: foco y micro-animaciones (estilo PdC) --- */
 .ede-tarjeta { transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease; }
-.ede-zona .gpfocus .ede-tarjeta,
+.ede-panel .gpfocus .ede-tarjeta,
 .ede-celda:hover .ede-tarjeta {
   border-color: var(--ede-acento, #0AB9E6) !important;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22),
@@ -246,13 +255,13 @@ const ESTILOS = `
   transform: scale(1.02);
 }
 .ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
-.ede-zona .gpfocus .ede-icono-tile { transform: scale(1.08); filter: brightness(1.12); }
+.ede-panel .gpfocus .ede-icono-tile { transform: scale(1.08); filter: brightness(1.12); }
 .ede-icono-caja { display: inline-flex; align-items: center; justify-content: center; transition: box-shadow 160ms ease; }
-.ede-zona .gpfocus .ede-icono-caja { box-shadow: 0 0 12px var(--ede-glow, rgba(10,185,230,0.55)); }
-.ede-zona .gpfocus .ede-anim-pop { animation: ede-icono-pop 420ms cubic-bezier(.2,.8,.2,1) both; }
-.ede-zona .gpfocus .ede-anim-giro { animation: ede-icono-giro 480ms ease-out both; }
-.ede-zona .gpfocus .ede-anim-latido { animation: ede-icono-latido 460ms ease-out both; }
-.ede-zona .gpfocus .ede-anim-barrido { animation: ede-icono-barrido 380ms ease-out both; }
+.ede-panel .gpfocus .ede-icono-caja { box-shadow: 0 0 12px var(--ede-glow, rgba(10,185,230,0.55)); }
+.ede-panel .gpfocus .ede-anim-pop { animation: ede-icono-pop 420ms cubic-bezier(.2,.8,.2,1) both; }
+.ede-panel .gpfocus .ede-anim-giro { animation: ede-icono-giro 480ms ease-out both; }
+.ede-panel .gpfocus .ede-anim-latido { animation: ede-icono-latido 460ms ease-out both; }
+.ede-panel .gpfocus .ede-anim-barrido { animation: ede-icono-barrido 380ms ease-out both; }
 @keyframes ede-icono-pop { 0% { transform: scale(.82); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
 @keyframes ede-icono-latido { 0% { transform: scale(.9); opacity: .7; } 55% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
@@ -273,12 +282,12 @@ const ESTILOS = `
 @media (prefers-reduced-motion: reduce) {
   .ede-slot.pulso { animation: none; }
   .ede-tarjeta, .ede-icono-tile, .ede-icono-caja { transition: none; }
-  .ede-zona .gpfocus .ede-tarjeta { transform: none; }
-  .ede-zona .gpfocus .ede-icono-tile,
-  .ede-zona .gpfocus .ede-anim-pop,
-  .ede-zona .gpfocus .ede-anim-giro,
-  .ede-zona .gpfocus .ede-anim-latido,
-  .ede-zona .gpfocus .ede-anim-barrido { animation: none; transform: none; }
+  .ede-panel .gpfocus .ede-tarjeta { transform: none; }
+  .ede-panel .gpfocus .ede-icono-tile,
+  .ede-panel .gpfocus .ede-anim-pop,
+  .ede-panel .gpfocus .ede-anim-giro,
+  .ede-panel .gpfocus .ede-anim-latido,
+  .ede-panel .gpfocus .ede-anim-barrido { animation: none; transform: none; }
 }
 .ede-aparecer { animation: ede-aparecer 150ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
@@ -430,7 +439,7 @@ function estiloTarjeta(principal, color) {
         overflow: "hidden",
         color: C.texto,
         border: `1px solid ${principal ? hexA(C.rojo, 0.8) : "rgba(255,255,255,0.10)"}`,
-        background: `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.22)}, transparent 62%), ` +
+        background: `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.14)}, transparent 62%), ` +
             `linear-gradient(155deg, ${C.carbon1}, ${C.carbon2})`,
         boxShadow: principal
             ? `0 0 12px ${hexA(C.rojo, 0.35)}, inset 0 0 14px ${hexA(C.rojo, 0.10)}`
@@ -442,7 +451,7 @@ function estiloTarjeta(principal, color) {
 function FilaMando(props) {
     const { m, mostrarMac, destello, onClick } = props;
     const color = colorDe(m);
-    return (SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
+    return (SP_JSX.jsx(BotonTarjeta, { onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
                 ...estiloTarjeta(m.es_principal, color),
                 ...(destello
                     ? {
@@ -465,7 +474,7 @@ function FilaMando(props) {
 function MandoCuadrado(props) {
     const { m, mostrarMac, destello, onClick } = props;
     const color = colorDe(m);
-    return (SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
+    return (SP_JSX.jsx(BotonTarjeta, { onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
                 ...estiloTarjeta(m.es_principal, color),
                 ...(destello
                     ? {
@@ -512,16 +521,25 @@ function MandoCuadrado(props) {
                         textOverflow: "ellipsis",
                     }, children: m.sdl || m.nombre || m.clase })) : null] }) }));
 }
-function BotonAccion(props) {
-    return (SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: props.onClick, children: SP_JSX.jsxs("div", { style: {
+// Envoltorio comun: quita el fondo/padding que pone Steam al ButtonItem y
+// deja solo la tarjeta. Asi todos los botones se ven igual.
+function BotonTarjeta(props) {
+    return (SP_JSX.jsx("div", { className: "ede-boton", children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: props.onClick, children: props.children }) }));
+}
+function TarjetaBase(props) {
+    const color = props.color ?? C.azul;
+    return (SP_JSX.jsx(BotonTarjeta, { onClick: props.onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
+                ...estiloTarjeta(false, color),
                 display: "flex",
                 alignItems: "center",
-                gap: "9px",
-                padding: "4px 8px",
-                borderRadius: "12px",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(128,128,128,0.18)",
-            }, children: [SP_JSX.jsx(CirculoIcono, { color: C.azul, lado: 22, children: props.icono }), SP_JSX.jsx("span", { children: props.texto })] }) }));
+                gap: "11px",
+                width: "100%",
+                padding: "11px 12px",
+                textAlign: "left",
+            }, children: [SP_JSX.jsx(IconoTarjeta, { icono: props.icono, color: color, anim: props.anim }), SP_JSX.jsxs("div", { style: { minWidth: 0, flex: 1 }, children: [SP_JSX.jsx("div", { style: { fontSize: "0.8em", fontWeight: 700, lineHeight: 1.2 }, children: props.titulo }), props.detalle ? (SP_JSX.jsx("div", { style: { fontSize: "0.68em", opacity: 0.7, lineHeight: 1.2 }, children: props.detalle })) : null] }), props.flecha ? (SP_JSX.jsx("span", { style: { opacity: 0.45, display: "flex", flex: "0 0 auto" }, children: SP_JSX.jsx(FaChevronRight, { size: 11 }) })) : null] }) }));
+}
+function BotonAccion(props) {
+    return (SP_JSX.jsx(TarjetaBase, { icono: props.icono, titulo: props.texto, color: props.color, anim: "pop", onClick: props.onClick }));
 }
 // --- icono de la maquina integrada -----------------------------------------
 function IconoPortatil(props) {
@@ -619,7 +637,7 @@ function IconoTarjeta(props) {
 }
 function TarjetaAccion(props) {
     const color = props.color ?? C.azul;
-    return (SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: props.onClick, children: SP_JSX.jsx("div", { className: "ede-tarjeta", style: {
+    return (SP_JSX.jsx(BotonTarjeta, { onClick: props.onClick, children: SP_JSX.jsx("div", { className: "ede-tarjeta", style: {
                 ...estiloTarjeta(false, color),
                 display: "flex",
                 flexDirection: "column",
@@ -641,16 +659,7 @@ function TarjetaAccion(props) {
 }
 // --- tarjeta ancha (icono a la izquierda, como el menu de PdC) --------------
 function TarjetaFila(props) {
-    const color = props.color ?? C.azul;
-    return (SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: props.onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
-                ...estiloTarjeta(false, color),
-                display: "flex",
-                alignItems: "center",
-                gap: "11px",
-                width: "100%",
-                padding: "10px 12px",
-                textAlign: "left",
-            }, children: [SP_JSX.jsx(IconoTarjeta, { icono: props.icono, color: color, anim: props.anim }), SP_JSX.jsxs("div", { style: { minWidth: 0, flex: 1 }, children: [SP_JSX.jsx("div", { style: { fontSize: "0.8em", fontWeight: 700, lineHeight: 1.2 }, children: props.titulo }), props.detalle ? (SP_JSX.jsx("div", { style: { fontSize: "0.68em", opacity: 0.7, lineHeight: 1.2 }, children: props.detalle })) : null] }), SP_JSX.jsx("span", { style: { opacity: 0.45, display: "flex", flex: "0 0 auto" }, children: SP_JSX.jsx(FaChevronRight, { size: 11 }) })] }) }));
+    return (SP_JSX.jsx(TarjetaBase, { icono: props.icono, titulo: props.titulo, detalle: props.detalle, color: props.color, anim: props.anim, flecha: true, onClick: props.onClick }));
 }
 // --- rejilla de 2 columnas -------------------------------------------------
 function Rejilla(props) {
@@ -929,7 +938,7 @@ function Content() {
         return trozos.length ? trozos.join(" · ") : "sin datos";
     })();
     const resumenAjustes = `${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`;
-    return (SP_JSX.jsxs("div", { style: {
+    return (SP_JSX.jsxs("div", { className: "ede-panel", style: {
             "--ede-acento": acento,
             "--ede-acento-halo": hexA(acento, 0.45),
         }, children: [SP_JSX.jsx("style", { children: ESTILOS }), !est.instalado || est.desactualizado || !est.hook ? (SP_JSX.jsx(DFL.PanelSection, { title: !est.instalado
@@ -938,7 +947,7 @@ function Content() {
                         ? "Hook desactivado"
                         : est.reparar
                             ? "Reparar"
-                            : "Actualizar", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaDownload, { size: 14 }), texto: !est.instalado
+                            : "Actualizar", children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { color: C.verde, icono: SP_JSX.jsx(FaDownload, { size: 16 }), texto: !est.instalado
                             ? "Instalar scripts"
                             : !est.hook
                                 ? "Reactivar hook"
@@ -954,7 +963,7 @@ function Content() {
                                     flexWrap: "wrap",
                                     gap: "6px",
                                     width: "100%",
-                                }, children: [maquinaNombre ? (SP_JSX.jsx(ChipEstado, { color: acento, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre, size: 12 }), texto: maquinaNombre })) : null, SP_JSX.jsx(ChipEstado, { color: C.azul, icono: SP_JSX.jsx(FaGamepad, { size: 11 }), texto: `${est.mandos.length} ${est.mandos.length === 1 ? "mando" : "mandos"}` }), SP_JSX.jsx(ChipEstado, { color: C.violeta, icono: SP_JSX.jsx(FaFileAlt, { size: 11 }), texto: `v${est.version}` }), SP_JSX.jsx(ChipEstado, { color: est.hook ? C.verde : C.rojo, icono: est.hook ? SP_JSX.jsx(FaCheck, { size: 11 }) : SP_JSX.jsx(FaBan, { size: 11 }), texto: est.hook ? "hook OK" : "sin hook" })] })] }) }) }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: cambiarJugadores, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
+                                }, children: [maquinaNombre ? (SP_JSX.jsx(ChipEstado, { color: acento, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre, size: 12 }), texto: maquinaNombre })) : null, SP_JSX.jsx(ChipEstado, { color: C.azul, icono: SP_JSX.jsx(FaGamepad, { size: 11 }), texto: `${est.mandos.length} ${est.mandos.length === 1 ? "mando" : "mandos"}` }), SP_JSX.jsx(ChipEstado, { color: C.violeta, icono: SP_JSX.jsx(FaFileAlt, { size: 11 }), texto: `v${est.version}` }), SP_JSX.jsx(ChipEstado, { color: est.hook ? C.verde : C.rojo, icono: est.hook ? SP_JSX.jsx(FaCheck, { size: 11 }) : SP_JSX.jsx(FaBan, { size: 11 }), texto: est.hook ? "hook OK" : "sin hook" })] })] }) }) }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonTarjeta, { onClick: cambiarJugadores, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
                                 ...estiloTarjeta(false, acento),
                                 display: "flex",
                                 alignItems: "center",
@@ -985,7 +994,7 @@ function Content() {
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { icono: SP_JSX.jsx(FaSyncAlt, { size: 14 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), anim: "pop", titulo: "Integrado", detalle: `${maquinaNombre ? `${maquinaNombre} · ` : ""}${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { color: C.azul, icono: SP_JSX.jsx(FaSyncAlt, { size: 16 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), resumen: resumenAjustes, abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.naranja, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), anim: "pop", titulo: "Integrado", detalle: `${maquinaNombre ? `${maquinaNombre} · ` : ""}${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${est.integrado_auto ? " (auto)" : ""}`, onClick: () => ciclar("integrado") }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {

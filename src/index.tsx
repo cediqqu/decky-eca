@@ -215,13 +215,22 @@ const ESTILOS = `
   to   { opacity: 1; transform: none; }
 }
 .ede-estrella { animation: ede-latido 2.6s ease-in-out infinite; }
-/* el boton de la celda no necesita padding propio: lo pone la tarjeta */
-.ede-celda > div { padding: 0 !important; border-radius: 16px !important; }
-/* capa de foco de Steam: mas suave y dentro de la tarjeta */
-.ede-zona .gpfocus { background: rgba(255,255,255,0.05) !important; border-radius: 14px !important; }
+/* el boton de Steam no pinta nada: solo se ve la tarjeta de dentro */
+.ede-boton > div,
+.ede-celda > div {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+}
+.ede-boton > div:hover,
+.ede-boton > div.gpfocus {
+  background: transparent !important;
+  box-shadow: none !important;
+}
 /* --- tarjetas: foco y micro-animaciones (estilo PdC) --- */
 .ede-tarjeta { transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease; }
-.ede-zona .gpfocus .ede-tarjeta,
+.ede-panel .gpfocus .ede-tarjeta,
 .ede-celda:hover .ede-tarjeta {
   border-color: var(--ede-acento, #0AB9E6) !important;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22),
@@ -230,13 +239,13 @@ const ESTILOS = `
   transform: scale(1.02);
 }
 .ede-icono-tile { display: inline-flex; transition: transform 160ms ease, filter 160ms ease; }
-.ede-zona .gpfocus .ede-icono-tile { transform: scale(1.08); filter: brightness(1.12); }
+.ede-panel .gpfocus .ede-icono-tile { transform: scale(1.08); filter: brightness(1.12); }
 .ede-icono-caja { display: inline-flex; align-items: center; justify-content: center; transition: box-shadow 160ms ease; }
-.ede-zona .gpfocus .ede-icono-caja { box-shadow: 0 0 12px var(--ede-glow, rgba(10,185,230,0.55)); }
-.ede-zona .gpfocus .ede-anim-pop { animation: ede-icono-pop 420ms cubic-bezier(.2,.8,.2,1) both; }
-.ede-zona .gpfocus .ede-anim-giro { animation: ede-icono-giro 480ms ease-out both; }
-.ede-zona .gpfocus .ede-anim-latido { animation: ede-icono-latido 460ms ease-out both; }
-.ede-zona .gpfocus .ede-anim-barrido { animation: ede-icono-barrido 380ms ease-out both; }
+.ede-panel .gpfocus .ede-icono-caja { box-shadow: 0 0 12px var(--ede-glow, rgba(10,185,230,0.55)); }
+.ede-panel .gpfocus .ede-anim-pop { animation: ede-icono-pop 420ms cubic-bezier(.2,.8,.2,1) both; }
+.ede-panel .gpfocus .ede-anim-giro { animation: ede-icono-giro 480ms ease-out both; }
+.ede-panel .gpfocus .ede-anim-latido { animation: ede-icono-latido 460ms ease-out both; }
+.ede-panel .gpfocus .ede-anim-barrido { animation: ede-icono-barrido 380ms ease-out both; }
 @keyframes ede-icono-pop { 0% { transform: scale(.82); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
 @keyframes ede-icono-latido { 0% { transform: scale(.9); opacity: .7; } 55% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
@@ -257,12 +266,12 @@ const ESTILOS = `
 @media (prefers-reduced-motion: reduce) {
   .ede-slot.pulso { animation: none; }
   .ede-tarjeta, .ede-icono-tile, .ede-icono-caja { transition: none; }
-  .ede-zona .gpfocus .ede-tarjeta { transform: none; }
-  .ede-zona .gpfocus .ede-icono-tile,
-  .ede-zona .gpfocus .ede-anim-pop,
-  .ede-zona .gpfocus .ede-anim-giro,
-  .ede-zona .gpfocus .ede-anim-latido,
-  .ede-zona .gpfocus .ede-anim-barrido { animation: none; transform: none; }
+  .ede-panel .gpfocus .ede-tarjeta { transform: none; }
+  .ede-panel .gpfocus .ede-icono-tile,
+  .ede-panel .gpfocus .ede-anim-pop,
+  .ede-panel .gpfocus .ede-anim-giro,
+  .ede-panel .gpfocus .ede-anim-latido,
+  .ede-panel .gpfocus .ede-anim-barrido { animation: none; transform: none; }
 }
 .ede-aparecer { animation: ede-aparecer 150ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
@@ -486,7 +495,7 @@ function estiloTarjeta(principal: boolean, color: string): CSSProperties {
     color: C.texto,
     border: `1px solid ${principal ? hexA(C.rojo, 0.8) : "rgba(255,255,255,0.10)"}`,
     background:
-      `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.22)}, transparent 62%), ` +
+      `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.14)}, transparent 62%), ` +
       `linear-gradient(155deg, ${C.carbon1}, ${C.carbon2})`,
     boxShadow: principal
       ? `0 0 12px ${hexA(C.rojo, 0.35)}, inset 0 0 14px ${hexA(C.rojo, 0.10)}`
@@ -505,7 +514,7 @@ function FilaMando(props: {
   const { m, mostrarMac, destello, onClick } = props;
   const color = colorDe(m);
   return (
-    <ButtonItem layout="below" onClick={onClick}>
+    <BotonTarjeta onClick={onClick}>
       <div
         className="ede-tarjeta"
         style={{
@@ -553,7 +562,7 @@ function FilaMando(props: {
           </div>
         </div>
       </div>
-    </ButtonItem>
+    </BotonTarjeta>
   );
 }
 
@@ -567,7 +576,7 @@ function MandoCuadrado(props: {
   const { m, mostrarMac, destello, onClick } = props;
   const color = colorDe(m);
   return (
-    <ButtonItem layout="below" onClick={onClick}>
+    <BotonTarjeta onClick={onClick}>
       <div
         className="ede-tarjeta"
         style={{
@@ -644,34 +653,81 @@ function MandoCuadrado(props: {
           </div>
         ) : null}
       </div>
-    </ButtonItem>
+    </BotonTarjeta>
+  );
+}
+
+// Envoltorio comun: quita el fondo/padding que pone Steam al ButtonItem y
+// deja solo la tarjeta. Asi todos los botones se ven igual.
+function BotonTarjeta(props: { onClick: () => void; children: ReactNode }) {
+  return (
+    <div className="ede-boton">
+      <ButtonItem layout="below" onClick={props.onClick}>
+        {props.children}
+      </ButtonItem>
+    </div>
+  );
+}
+
+function TarjetaBase(props: {
+  icono: ReactNode;
+  titulo: string;
+  detalle?: string;
+  color?: string;
+  anim?: AnimIcono;
+  flecha?: boolean;
+  onClick: () => void;
+}) {
+  const color = props.color ?? C.azul;
+  return (
+    <BotonTarjeta onClick={props.onClick}>
+      <div
+        className="ede-tarjeta"
+        style={{
+          ...estiloTarjeta(false, color),
+          display: "flex",
+          alignItems: "center",
+          gap: "11px",
+          width: "100%",
+          padding: "11px 12px",
+          textAlign: "left",
+        }}
+      >
+        <IconoTarjeta icono={props.icono} color={color} anim={props.anim} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: "0.8em", fontWeight: 700, lineHeight: 1.2 }}>
+            {props.titulo}
+          </div>
+          {props.detalle ? (
+            <div style={{ fontSize: "0.68em", opacity: 0.7, lineHeight: 1.2 }}>
+              {props.detalle}
+            </div>
+          ) : null}
+        </div>
+        {props.flecha ? (
+          <span style={{ opacity: 0.45, display: "flex", flex: "0 0 auto" }}>
+            <FaChevronRight size={11} />
+          </span>
+        ) : null}
+      </div>
+    </BotonTarjeta>
   );
 }
 
 function BotonAccion(props: {
   icono: ReactNode;
   texto: string;
+  color?: string;
   onClick: () => void;
 }) {
   return (
-    <ButtonItem layout="below" onClick={props.onClick}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "9px",
-          padding: "4px 8px",
-          borderRadius: "12px",
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(128,128,128,0.18)",
-        }}
-      >
-        <CirculoIcono color={C.azul} lado={22}>
-          {props.icono}
-        </CirculoIcono>
-        <span>{props.texto}</span>
-      </div>
-    </ButtonItem>
+    <TarjetaBase
+      icono={props.icono}
+      titulo={props.texto}
+      color={props.color}
+      anim="pop"
+      onClick={props.onClick}
+    />
   );
 }
 
@@ -840,7 +896,7 @@ function TarjetaAccion(props: {
 }) {
   const color = props.color ?? C.azul;
   return (
-    <ButtonItem layout="below" onClick={props.onClick}>
+    <BotonTarjeta onClick={props.onClick}>
       <div
         className="ede-tarjeta"
         style={{
@@ -877,7 +933,7 @@ function TarjetaAccion(props: {
           ) : null}
         </div>
       </div>
-    </ButtonItem>
+    </BotonTarjeta>
   );
 }
 
@@ -890,37 +946,16 @@ function TarjetaFila(props: {
   anim?: AnimIcono;
   onClick: () => void;
 }) {
-  const color = props.color ?? C.azul;
   return (
-    <ButtonItem layout="below" onClick={props.onClick}>
-      <div
-        className="ede-tarjeta"
-        style={{
-          ...estiloTarjeta(false, color),
-          display: "flex",
-          alignItems: "center",
-          gap: "11px",
-          width: "100%",
-          padding: "10px 12px",
-          textAlign: "left",
-        }}
-      >
-        <IconoTarjeta icono={props.icono} color={color} anim={props.anim} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: "0.8em", fontWeight: 700, lineHeight: 1.2 }}>
-            {props.titulo}
-          </div>
-          {props.detalle ? (
-            <div style={{ fontSize: "0.68em", opacity: 0.7, lineHeight: 1.2 }}>
-              {props.detalle}
-            </div>
-          ) : null}
-        </div>
-        <span style={{ opacity: 0.45, display: "flex", flex: "0 0 auto" }}>
-          <FaChevronRight size={11} />
-        </span>
-      </div>
-    </ButtonItem>
+    <TarjetaBase
+      icono={props.icono}
+      titulo={props.titulo}
+      detalle={props.detalle}
+      color={props.color}
+      anim={props.anim}
+      flecha
+      onClick={props.onClick}
+    />
   );
 }
 
@@ -1432,6 +1467,7 @@ function Content() {
 
   return (
     <div
+      className="ede-panel"
       style={
         {
           "--ede-acento": acento,
@@ -1456,7 +1492,8 @@ function Content() {
         >
           <PanelSectionRow>
             <BotonAccion
-              icono={<FaDownload size={14} />}
+              color={C.verde}
+              icono={<FaDownload size={16} />}
               texto={
                 !est.instalado
                   ? "Instalar scripts"
@@ -1543,7 +1580,7 @@ function Content() {
 
       <PanelSection>
         <PanelSectionRow>
-          <ButtonItem layout="below" onClick={cambiarJugadores}>
+          <BotonTarjeta onClick={cambiarJugadores}>
             <div
               className="ede-tarjeta"
               style={{
@@ -1582,7 +1619,7 @@ function Content() {
                 })}
               </div>
             </div>
-          </ButtonItem>
+          </BotonTarjeta>
         </PanelSectionRow>
       </PanelSection>
 
@@ -1673,7 +1710,8 @@ function Content() {
         ) : null}
         <PanelSectionRow>
           <BotonAccion
-            icono={<FaSyncAlt size={14} />}
+            color={C.azul}
+            icono={<FaSyncAlt size={16} />}
             texto="Recargar mandos"
             onClick={() => conBloqueo(refrescar)}
           />
