@@ -22,7 +22,6 @@ import {
   FaCheck,
   FaChevronDown,
   FaChevronRight,
-  FaCog,
   FaDownload,
   FaExclamationTriangle,
   FaFileAlt,
@@ -30,7 +29,6 @@ import {
   FaInfoCircle,
   FaMicrochip,
   FaMinus,
-  FaPalette,
   FaPlaystation,
   FaSlidersH,
   FaStar,
@@ -66,7 +64,6 @@ type Prefs = {
   JUGADORES_MAX: string;
   ORDEN_INTEGRADO: string;
   ORDEN_DUALSENSE: string;
-  COLOR: string;
 };
 
 type Maquina = { vendor: string; producto: string; placa: string };
@@ -132,15 +129,13 @@ const C = {
   gris: "#8A8F98",
 };
 
-// acentos que puede elegir el usuario (el "color" del plugin)
-const ACENTOS: Record<string, { nombre: string; hex: string }> = {
-  azul: { nombre: "Azul", hex: "#0AB9E6" },
-  verde: { nombre: "Verde", hex: "#3DDC84" },
-  violeta: { nombre: "Violeta", hex: "#B47BFF" },
-  naranja: { nombre: "Naranja", hex: "#FF8A3D" },
-  rosa: { nombre: "Rosa", hex: "#FF5C8A" },
-  turquesa: { nombre: "Turquesa", hex: "#2EE6C8" },
-};
+// color de cada jugador en el boton "Mandos"
+const COLOR_JUGADOR = [
+  "#0AB9E6", // 1 azul
+  "#3DDC84", // 2 verde
+  "#B47BFF", // 3 violeta
+  "#FF8A3D", // 4 naranja
+];
 
 function hexA(hex: string, alfa: number): string {
   const h = hex.replace("#", "");
@@ -204,14 +199,6 @@ function macCorta(serie: string): string {
   return serie;
 }
 
-const ESCENARIO_CORTO: Record<string, string> = {
-  nativo: "Nativo",
-  steam_input: "Steam Input",
-  steam_input_integrado: "Steam Input · integrado",
-  solo_integrado: "Solo integrado",
-  sin_mandos: "Sin mandos",
-};
-
 const INTEGRADO_TXT: Record<string, string> = {
   ignorar: "no usar",
   primero: "Player 1",
@@ -254,7 +241,21 @@ const ESTILOS = `
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
 @keyframes ede-icono-latido { 0% { transform: scale(.9); opacity: .7; } 55% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes ede-icono-barrido { 0% { transform: translateY(3px); opacity: .5; } 100% { transform: translateY(0); opacity: 1; } }
+/* iconos de jugador del boton "Mandos" */
+.ede-slot { display: inline-flex; transition: color 180ms ease, opacity 180ms ease, filter 180ms ease; }
+.ede-slot.off { color: rgba(255,255,255,0.20); }
+.ede-slot.on { filter: drop-shadow(0 0 5px currentColor); }
+.ede-slot.pulso { animation: ede-slot-vibra 480ms ease-in-out; }
+@keyframes ede-slot-vibra {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15% { transform: translateX(-2px) rotate(-8deg); }
+  30% { transform: translateX(2px) rotate(8deg); }
+  45% { transform: translateX(-2px) rotate(-6deg); }
+  60% { transform: translateX(2px) rotate(6deg); }
+  75% { transform: translateX(-1px) rotate(-3deg); }
+}
 @media (prefers-reduced-motion: reduce) {
+  .ede-slot.pulso { animation: none; }
   .ede-tarjeta, .ede-icono-tile, .ede-icono-caja { transition: none; }
   .ede-zona .gpfocus .ede-tarjeta { transform: none; }
   .ede-zona .gpfocus .ede-icono-tile,
@@ -762,6 +763,41 @@ function IconoMaquina(props: {
   return <IconoPortatil size={lado} />;
 }
 
+// --- chip de estado (mismo diseno que el del dispositivo) ------------------
+function ChipEstado(props: { icono: ReactNode; texto: string; color: string }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        minHeight: "24px",
+        maxWidth: "100%",
+        padding: "3px 9px",
+        borderRadius: "999px",
+        background: "rgba(255,255,255,0.04)",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.10)",
+        boxSizing: "border-box",
+      }}
+    >
+      <span style={{ display: "flex", flex: "0 0 auto", color: props.color }}>
+        {props.icono}
+      </span>
+      <span
+        style={{
+          fontSize: "0.72em",
+          fontWeight: 650,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {props.texto}
+      </span>
+    </div>
+  );
+}
+
 // --- tarjeta de accion (cuadrada, como las de los mandos) ------------------
 type AnimIcono = "pop" | "giro" | "latido" | "barrido";
 
@@ -1179,6 +1215,7 @@ function Content() {
   const [aviso, setAviso] = useState("");
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [destello, setDestello] = useState<string | null>(null);
+  const [pulsoMando, setPulsoMando] = useState(0);
   const [ultimo, setUltimo] = useState<Record<string, number>>({});
 
   const toggle = (id: string) =>
@@ -1294,6 +1331,16 @@ function Content() {
       if (nuevo.aviso) avisar(nuevo.aviso);
     });
 
+  const cambiarJugadores = () =>
+    conBloqueo(async () => {
+      const nuevo = await call<[string], Estado>("ciclar", "max");
+      setEst(nuevo);
+      if (nuevo.aviso) avisar(nuevo.aviso);
+      const n = Number(nuevo.prefs.JUGADORES_MAX);
+      setPulsoMando(n);
+      setTimeout(() => setPulsoMando(0), 520);
+    });
+
   const aplicar = () =>
     conBloqueo(async () => {
       const r = await call<[], Salida>("aplicar");
@@ -1361,21 +1408,11 @@ function Content() {
   const integradoNombre =
     est.mandos.find((m) => m.clase === "Integrado")?.nombre ?? "";
   const maquinaNombre = nombreMaquina(est.maquina);
-  const acentoInfo = ACENTOS[p.COLOR] ?? ACENTOS.azul;
-  const acento = acentoInfo.hex;
+  const acento = C.azul;
 
   // la MAC solo cuando hay mas de un mando del mismo tipo
   const repetidos = (clase: string) =>
     est.mandos.filter((x) => x.clase === clase).length > 1;
-
-  const textoMandos = (e: Estado) => {
-    const partes: string[] = [];
-    if (e.ds_conectados > 0) partes.push(`${e.ds_conectados} DualSense`);
-    if (e.otros_conectados > 0) {
-      partes.push(`${e.otros_conectados} ${e.otros_conectados === 1 ? "otro" : "otros"}`);
-    }
-    return partes.length ? partes.join(" · ") : "sin mandos externos";
-  };
 
   const resumenPlanes = (() => {
     const trozos: string[] = [];
@@ -1389,7 +1426,7 @@ function Content() {
     return trozos.length ? trozos.join(" · ") : "sin datos";
   })();
 
-  const resumenAjustes = `${p.JUGADORES_MAX} · ${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
+  const resumenAjustes = `${INTEGRADO_TXT[p.ORDEN_INTEGRADO] ?? p.ORDEN_INTEGRADO}${
     est.integrado_auto ? " (auto)" : ""
   }`;
 
@@ -1404,59 +1441,6 @@ function Content() {
     >
       <style>{ESTILOS}</style>
 
-      {maquinaNombre ? (
-        <PanelSection>
-          <PanelSectionRow>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                width: "100%",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  minHeight: "24px",
-                  maxWidth: "100%",
-                  padding: "3px 9px",
-                  borderRadius: "999px",
-                  background: "rgba(255,255,255,0.04)",
-                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.10)",
-                  boxSizing: "border-box",
-                }}
-              >
-                <span
-                  style={{
-                    display: "flex",
-                    flex: "0 0 auto",
-                    color: acento,
-                  }}
-                >
-                  <IconoMaquina
-                    maquina={est.maquina}
-                    nombre={integradoNombre}
-                    size={13}
-                  />
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.72em",
-                    fontWeight: 650,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {maquinaNombre}
-                </span>
-              </div>
-            </div>
-          </PanelSectionRow>
-        </PanelSection>
-      ) : null}
 
       {!est.instalado || est.desactualizado || !est.hook ? (
         <PanelSection
@@ -1506,25 +1490,99 @@ function Content() {
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "10px",
+              flexDirection: "column",
+              gap: "7px",
               width: "100%",
             }}
           >
-            <CirculoIcono color={acento} lado={26}>
-              <FaInfoCircle size={12} />
-            </CirculoIcono>
-            <div style={{ minWidth: 0, fontSize: "0.78em", lineHeight: 1.35 }}>
-              <div style={{ fontWeight: 700 }}>Estado</div>
-              <div style={{ opacity: 0.7 }}>
-                {ESCENARIO_CORTO[est.escenario] ?? est.escenario} ·{" "}
-                {textoMandos(est)} · scripts {est.version} ·{" "}
-                <span style={{ color: est.hook ? C.verde : C.rojo }}>
-                  {est.hook ? "hook OK" : "hook falta"}
-                </span>
-              </div>
+            <div style={{ fontWeight: 700, fontSize: "0.8em" }}>Estado</div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                width: "100%",
+              }}
+            >
+              {maquinaNombre ? (
+                <ChipEstado
+                  color={acento}
+                  icono={
+                    <IconoMaquina
+                      maquina={est.maquina}
+                      nombre={integradoNombre}
+                      size={12}
+                    />
+                  }
+                  texto={maquinaNombre}
+                />
+              ) : null}
+              <ChipEstado
+                color={C.azul}
+                icono={<FaGamepad size={11} />}
+                texto={`${est.mandos.length} ${
+                  est.mandos.length === 1 ? "mando" : "mandos"
+                }`}
+              />
+              <ChipEstado
+                color={C.violeta}
+                icono={<FaFileAlt size={11} />}
+                texto={`v${est.version}`}
+              />
+              <ChipEstado
+                color={est.hook ? C.verde : C.rojo}
+                icono={
+                  est.hook ? <FaCheck size={11} /> : <FaBan size={11} />
+                }
+                texto={est.hook ? "hook OK" : "sin hook"}
+              />
             </div>
           </div>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection>
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={cambiarJugadores}>
+            <div
+              className="ede-tarjeta"
+              style={{
+                ...estiloTarjeta(false, acento),
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                width: "100%",
+                padding: "11px 12px",
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: "0.82em" }}>
+                Mandos
+              </span>
+              <div
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                }}
+              >
+                {[1, 2, 3, 4].map((n) => {
+                  const on = n <= Number(p.JUGADORES_MAX);
+                  return (
+                    <span
+                      key={n}
+                      className={`ede-slot ${on ? "on" : "off"}${
+                        pulsoMando === n ? " pulso" : ""
+                      }`}
+                      style={on ? { color: COLOR_JUGADOR[n - 1] } : undefined}
+                    >
+                      <FaGamepad size={15} />
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
 
@@ -1645,16 +1703,6 @@ function Content() {
         <Rejilla>
           <div className="ede-celda">
             <TarjetaAccion
-              color={acento}
-              icono={<FaGamepad size={17} />}
-              anim="latido"
-              titulo="Mandos"
-              detalle={`${p.JUGADORES_MAX} jugadores`}
-              onClick={() => ciclar("max")}
-            />
-          </div>
-          <div className="ede-celda">
-            <TarjetaAccion
               color={C.naranja}
               icono={
                 <IconoMaquina
@@ -1672,27 +1720,6 @@ function Content() {
           </div>
           <div className="ede-celda">
             <TarjetaAccion
-              color={acento}
-              icono={<FaPalette size={17} />}
-              anim="pop"
-              titulo="Color"
-              detalle={acentoInfo.nombre}
-              onClick={() => ciclar("color")}
-            />
-          </div>
-        </Rejilla>
-      </Seccion>
-
-      <Seccion
-        titulo="Avanzado"
-        color={C.ambar}
-        icono={<FaCog size={13} />}
-        abierta={Boolean(abiertas.avanzado)}
-        onToggle={() => toggle("avanzado")}
-      >
-        <Rejilla>
-          <div className="ede-celda">
-            <TarjetaAccion
               color={C.verde}
               icono={<FaCheck size={17} />}
               anim="pop"
@@ -1703,21 +1730,21 @@ function Content() {
           </div>
           <div className="ede-celda">
             <TarjetaAccion
+              color={C.rojo}
               icono={<FaUndo size={16} />}
               anim="giro"
               titulo="Restaurar"
               detalle="Todo"
-              color={C.rojo}
               onClick={restaurarTodo}
             />
           </div>
           <div className="ede-celda">
             <TarjetaAccion
+              color={C.turquesa}
               icono={<FaFileAlt size={16} />}
               anim="barrido"
               titulo="Ver log"
               detalle="log.txt"
-              color={C.gris}
               onClick={verLog}
             />
           </div>
