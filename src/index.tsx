@@ -250,6 +250,24 @@ const ESTILOS = `
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
 @keyframes ede-icono-latido { 0% { transform: scale(.9); opacity: .7; } 55% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes ede-icono-barrido { 0% { transform: translateY(3px); opacity: .5; } 100% { transform: translateY(0); opacity: 1; } }
+/* boton pequeno de accion en la cabecera */
+.ede-icono-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.72);
+  transition: box-shadow 140ms ease, color 140ms ease;
+}
+.ede-icono-btn-foco {
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--ede-acento, #0AB9E6),
+              0 0 9px var(--ede-acento-halo, rgba(10,185,230,0.45));
+}
 /* iconos de jugador del boton "Mandos" */
 .ede-slot { display: inline-flex; transition: color 180ms ease, opacity 180ms ease, filter 180ms ease; }
 .ede-slot.off { color: rgba(255,255,255,0.20); }
@@ -462,20 +480,18 @@ function Badge(props: { m: Mando }) {
   );
 }
 
-function estiloTarjeta(principal: boolean, color: string): CSSProperties {
+function estiloTarjeta(color: string): CSSProperties {
   return {
     position: "relative",
     borderRadius: "16px",
     boxSizing: "border-box",
     overflow: "hidden",
     color: C.texto,
-    border: `1px solid ${principal ? hexA(C.rojo, 0.8) : "rgba(255,255,255,0.10)"}`,
+    border: "1px solid rgba(255,255,255,0.10)",
     background:
       `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.14)}, transparent 62%), ` +
       `linear-gradient(155deg, ${C.carbon1}, ${C.carbon2})`,
-    boxShadow: principal
-      ? `0 0 12px ${hexA(C.rojo, 0.35)}, inset 0 0 14px ${hexA(C.rojo, 0.10)}`
-      : "0 1px 3px rgba(0,0,0,0.45)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
     transition: "border-color 180ms ease, box-shadow 180ms ease",
   };
 }
@@ -494,7 +510,7 @@ function MandoCuadrado(props: {
       <div
         className="ede-tarjeta"
         style={{
-          ...estiloTarjeta(m.es_principal, color),
+          ...estiloTarjeta(color),
           ...(destello
             ? {
                 border: `1px solid ${C.azul}`,
@@ -615,7 +631,7 @@ function TarjetaBase(props: {
       <div
         className="ede-tarjeta"
         style={{
-          ...estiloTarjeta(false, color),
+          ...estiloTarjeta(color),
           display: "flex",
           alignItems: "center",
           gap: "11px",
@@ -750,6 +766,26 @@ function IconoMaquina(props: {
   return <IconoPortatil size={lado} />;
 }
 
+// --- boton de icono pequeno (acciones de cabecera) -------------------------
+function BotonIcono(props: {
+  icono: ReactNode;
+  titulo: string;
+  onClick: () => void;
+}) {
+  return (
+    <Focusable
+      className="ede-icono-btn"
+      focusClassName="ede-icono-btn-foco"
+      noFocusRing
+      onActivate={props.onClick}
+      onClick={props.onClick}
+      aria-label={props.titulo}
+    >
+      {props.icono}
+    </Focusable>
+  );
+}
+
 // --- chip de estado (mismo diseno que el del dispositivo) ------------------
 function ChipEstado(props: { icono: ReactNode; texto: string; color: string }) {
   return (
@@ -790,12 +826,13 @@ function TarjetaIntegrado(props: {
   icono: ReactNode;
   jugador: number | null;
   modo: string;
+  detectado: boolean;
   onClick: () => void;
 }) {
   const detalle =
     props.modo === "ignorar"
-      ? "Apagado"
-      : !props.jugador
+      ? "Desactivado"
+      : props.detectado && !props.jugador
         ? "Apagado"
         : props.modo === "primero"
           ? "Jugador 1"
@@ -858,7 +895,7 @@ function TarjetaAccion(props: {
       <div
         className="ede-tarjeta"
         style={{
-          ...estiloTarjeta(false, color),
+          ...estiloTarjeta(color),
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -941,6 +978,7 @@ function Seccion(props: {
   icono: ReactNode;
   color?: string;
   resumen?: string;
+  accion?: ReactNode;
   abierta: boolean;
   onToggle?: () => void;
   children: ReactNode;
@@ -972,10 +1010,21 @@ function Seccion(props: {
           {props.resumen}
         </span>
       ) : null}
-      {props.onToggle ? (
+      {props.accion ? (
         <span
           style={{
             marginLeft: props.resumen ? "6px" : "auto",
+            display: "flex",
+            flex: "0 0 auto",
+          }}
+        >
+          {props.accion}
+        </span>
+      ) : null}
+      {props.onToggle ? (
+        <span
+          style={{
+            marginLeft: props.resumen || props.accion ? "6px" : "auto",
             opacity: 0.6,
             display: "flex",
             flex: "0 0 auto",
@@ -1216,6 +1265,7 @@ function Content() {
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [destello, setDestello] = useState<string | null>(null);
   const [pulsoMando, setPulsoMando] = useState(0);
+  const ultimoN = useRef<number>(-1);
   const [ultimo, setUltimo] = useState<Record<string, number>>({});
 
   const toggle = (id: string) =>
@@ -1237,6 +1287,7 @@ function Content() {
     try {
       const nuevo = await call<[], Estado>("estado");
       setEst(nuevo);
+      ultimoN.current = nuevo.mandos.length;
       if (nuevo.aviso) avisar(nuevo.aviso);
     } catch (e) {
       abrirVentana("Error", String(e));
@@ -1245,6 +1296,28 @@ function Content() {
 
   useEffect(() => {
     void refrescar();
+  }, []);
+
+  // cada pocos segundos miramos si han conectado/desconectado mandos
+  useEffect(() => {
+    const id = setInterval(() => {
+      void (async () => {
+        try {
+          const n = await call<[], number>("contar");
+          if (n < 0) return;
+          if (ultimoN.current >= 0 && n !== ultimoN.current) {
+            const nuevo = await call<[], Estado>("estado");
+            setEst(nuevo);
+            ultimoN.current = nuevo.mandos.length;
+          } else {
+            ultimoN.current = n;
+          }
+        } catch {
+          /* silencio: es un sondeo */
+        }
+      })();
+    }, 7000);
+    return () => clearInterval(id);
   }, []);
 
   const conBloqueo = async (fn: () => Promise<void>) => {
@@ -1419,10 +1492,6 @@ function Content() {
   const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
   const acento = C.azul;
 
-  // la MAC solo cuando hay mas de un mando del mismo tipo
-  const repetidos = (clase: string) =>
-    est.mandos.filter((x) => x.clase === clase).length > 1;
-
   const resumenPlanes = (() => {
     const trozos: string[] = [];
     for (const [clave, etiqueta] of [
@@ -1541,7 +1610,7 @@ function Content() {
             <div
               className="ede-tarjeta"
               style={{
-                ...estiloTarjeta(false, acento),
+                ...estiloTarjeta(acento),
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
@@ -1585,6 +1654,13 @@ function Content() {
         color={acento}
         icono={<FaGamepad size={13} />}
         abierta={true}
+        accion={
+          <BotonIcono
+            titulo="Recargar mandos"
+            icono={<FaSyncAlt size={12} />}
+            onClick={() => conBloqueo(refrescar)}
+          />
+        }
       >
         {!mostrarIntegrado && externos.length === 0 ? (
           <PanelSectionRow>
@@ -1608,7 +1684,6 @@ function Content() {
                   style={{
                     minWidth: 0,
                     maxWidth: "100%",
-                    overflow: "hidden",
                     borderRadius: "16px",
                   }}
                 >
@@ -1621,6 +1696,7 @@ function Content() {
                     }
                     jugador={integrado?.jugador ?? null}
                     modo={p.ORDEN_INTEGRADO}
+                    detectado={Boolean(integrado)}
                     onClick={() => elegirIntegrado(siguienteIntegrado())}
                   />
                 </div>
@@ -1632,13 +1708,12 @@ function Content() {
                   style={{
                     minWidth: 0,
                     maxWidth: "100%",
-                    overflow: "hidden",
                     borderRadius: "16px",
                   }}
                 >
                   <MandoCuadrado
                     m={m}
-                    mostrarMac={repetidos(m.clase)}
+                    mostrarMac={true}
                     destello={destello === m.serie}
                     onClick={() => tocarMando(m)}
                   />
@@ -1677,14 +1752,6 @@ function Content() {
             </div>
           </PanelSectionRow>
         ) : null}
-        <PanelSectionRow>
-          <BotonAccion
-            color={C.azul}
-            icono={<FaSyncAlt size={16} />}
-            texto="Recargar mandos"
-            onClick={() => conBloqueo(refrescar)}
-          />
-        </PanelSectionRow>
       </Seccion>
 
       <PanelSection>

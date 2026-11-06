@@ -162,7 +162,7 @@ async def main():
     check("escribe el bloque", mod.BEGIN in despues and mod.END in despues)
     check("P1_SERIE correcto", 'P1_SERIE="4c:b9:9b:e9:bc:26"' in despues)
     check("el resto del .conf no cambia",
-          despues.startswith(antes.rstrip("\n") + "\n"))
+          despues.split(mod.BEGIN)[0] == antes.split(mod.BEGIN)[0])
     check("un solo bloque", despues.count(mod.BEGIN) == 1)
     princ = [m for m in est["mandos"] if m["principal"]]
     check("un unico principal",
@@ -583,6 +583,33 @@ async def main():
     os.remove(stock)
     r = await mod.Plugin().restaurar_todo()
     check("sin copias avisa", r["ok"] is False and "copia" in r["salida"], r)
+
+    # el integrado se coloca solo: J1 sin externos, ultimo con externos
+    prefs = mod._leer_prefs()
+    prefs["INTEGRADO_MANUAL"] = "no"
+    prefs["ORDEN_INTEGRADO"] = "ignorar"
+    mod._escribir_prefs(prefs)
+
+    solo_int = os.path.join(tmp, "solo_int.txt")
+    with open(solo_int, "w", encoding="utf-8") as fh:
+        fh.write("Asus Rog Ally Controller|03000000bd1200001501000011010000"
+                 "|0|1|1|Asus Rog Ally Controller|\n")
+    os.environ["EDEN_FAKE_SDL"] = solo_int
+    est = await mod.Plugin().estado()
+    check("solo integrado -> Jugador 1",
+          est["prefs"]["ORDEN_INTEGRADO"] == "primero", est["prefs"])
+
+    os.environ["EDEN_FAKE_SDL"] = uno          # ahora con un DualSense
+    est = await mod.Plugin().estado()
+    check("con externo -> ultimo jugador",
+          est["prefs"]["ORDEN_INTEGRADO"] == "ultimo", est["prefs"])
+
+    # si lo elige el usuario, el automatico no lo pisa
+    await mod.Plugin().integrado_modo("primero")
+    est = await mod.Plugin().estado()
+    check("la eleccion manual manda",
+          est["prefs"]["ORDEN_INTEGRADO"] == "primero"
+          and est["prefs"]["INTEGRADO_MANUAL"] == "si", est["prefs"])
 
     shutil.rmtree(tmp, ignore_errors=True)
 

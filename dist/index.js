@@ -269,6 +269,24 @@ const ESTILOS = `
 @keyframes ede-icono-giro { 0% { transform: rotate(-30deg); } 70% { transform: rotate(5deg); } 100% { transform: rotate(0); } }
 @keyframes ede-icono-latido { 0% { transform: scale(.9); opacity: .7; } 55% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes ede-icono-barrido { 0% { transform: translateY(3px); opacity: .5; } 100% { transform: translateY(0); opacity: 1; } }
+/* boton pequeno de accion en la cabecera */
+.ede-icono-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.72);
+  transition: box-shadow 140ms ease, color 140ms ease;
+}
+.ede-icono-btn-foco {
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--ede-acento, #0AB9E6),
+              0 0 9px var(--ede-acento-halo, rgba(10,185,230,0.45));
+}
 /* iconos de jugador del boton "Mandos" */
 .ede-slot { display: inline-flex; transition: color 180ms ease, opacity 180ms ease, filter 180ms ease; }
 .ede-slot.off { color: rgba(255,255,255,0.20); }
@@ -422,19 +440,17 @@ function Badge(props) {
     }
     return (SP_JSX.jsx("div", { style: { ...estiloBadge(C.gris), width: "18px", padding: 0 }, children: m.clase === "Integrado" ? SP_JSX.jsx(FaBan, { size: 8 }) : SP_JSX.jsx(FaMinus, { size: 8 }) }));
 }
-function estiloTarjeta(principal, color) {
+function estiloTarjeta(color) {
     return {
         position: "relative",
         borderRadius: "16px",
         boxSizing: "border-box",
         overflow: "hidden",
         color: C.texto,
-        border: `1px solid ${principal ? hexA(C.rojo, 0.8) : "rgba(255,255,255,0.10)"}`,
+        border: "1px solid rgba(255,255,255,0.10)",
         background: `radial-gradient(130% 100% at 100% 0%, ${hexA(color, 0.14)}, transparent 62%), ` +
             `linear-gradient(155deg, ${C.carbon1}, ${C.carbon2})`,
-        boxShadow: principal
-            ? `0 0 12px ${hexA(C.rojo, 0.35)}, inset 0 0 14px ${hexA(C.rojo, 0.10)}`
-            : "0 1px 3px rgba(0,0,0,0.45)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
         transition: "border-color 180ms ease, box-shadow 180ms ease",
     };
 }
@@ -443,7 +459,7 @@ function MandoCuadrado(props) {
     const { m, mostrarMac, destello, onClick } = props;
     const color = colorDe(m);
     return (SP_JSX.jsx(BotonTarjeta, { onClick: onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
-                ...estiloTarjeta(m.es_principal, color),
+                ...estiloTarjeta(color),
                 ...(destello
                     ? {
                         border: `1px solid ${C.azul}`,
@@ -502,7 +518,7 @@ function BotonTarjeta(props) {
 function TarjetaBase(props) {
     const color = props.color ?? C.azul;
     return (SP_JSX.jsx(BotonTarjeta, { onClick: props.onClick, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
-                ...estiloTarjeta(false, color),
+                ...estiloTarjeta(color),
                 display: "flex",
                 alignItems: "center",
                 gap: "11px",
@@ -576,6 +592,10 @@ function IconoMaquina(props) {
         return SP_JSX.jsx(FaXbox, { size: lado });
     return SP_JSX.jsx(IconoPortatil, { size: lado });
 }
+// --- boton de icono pequeno (acciones de cabecera) -------------------------
+function BotonIcono(props) {
+    return (SP_JSX.jsx(DFL.Focusable, { className: "ede-icono-btn", focusClassName: "ede-icono-btn-foco", noFocusRing: true, onActivate: props.onClick, onClick: props.onClick, "aria-label": props.titulo, children: props.icono }));
+}
 // --- chip de estado (mismo diseno que el del dispositivo) ------------------
 function ChipEstado(props) {
     return (SP_JSX.jsxs("div", { style: {
@@ -600,8 +620,8 @@ function ChipEstado(props) {
 // --- tarjeta del mando integrado -------------------------------------------
 function TarjetaIntegrado(props) {
     const detalle = props.modo === "ignorar"
-        ? "Apagado"
-        : !props.jugador
+        ? "Desactivado"
+        : props.detectado && !props.jugador
             ? "Apagado"
             : props.modo === "primero"
                 ? "Jugador 1"
@@ -622,7 +642,7 @@ function IconoTarjeta(props) {
 function TarjetaAccion(props) {
     const color = props.color ?? C.azul;
     return (SP_JSX.jsx(BotonTarjeta, { onClick: props.onClick, children: SP_JSX.jsx("div", { className: "ede-tarjeta", style: {
-                ...estiloTarjeta(false, color),
+                ...estiloTarjeta(color),
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -668,8 +688,12 @@ function Seccion(props) {
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                }, children: props.resumen })) : null, props.onToggle ? (SP_JSX.jsx("span", { style: {
+                }, children: props.resumen })) : null, props.accion ? (SP_JSX.jsx("span", { style: {
                     marginLeft: props.resumen ? "6px" : "auto",
+                    display: "flex",
+                    flex: "0 0 auto",
+                }, children: props.accion })) : null, props.onToggle ? (SP_JSX.jsx("span", { style: {
+                    marginLeft: props.resumen || props.accion ? "6px" : "auto",
                     opacity: 0.6,
                     display: "flex",
                     flex: "0 0 auto",
@@ -763,6 +787,7 @@ function Content() {
     const temporizador = SP_REACT.useRef(null);
     const [destello, setDestello] = SP_REACT.useState(null);
     const [pulsoMando, setPulsoMando] = SP_REACT.useState(0);
+    const ultimoN = SP_REACT.useRef(-1);
     const [ultimo, setUltimo] = SP_REACT.useState({});
     const toggle = (id) => setAbiertas((prev) => ({ ...prev, [id]: !prev[id] }));
     // avisos pasajeros: se pintan dentro del panel y se borran solos
@@ -781,6 +806,7 @@ function Content() {
         try {
             const nuevo = await call("estado");
             setEst(nuevo);
+            ultimoN.current = nuevo.mandos.length;
             if (nuevo.aviso)
                 avisar(nuevo.aviso);
         }
@@ -790,6 +816,30 @@ function Content() {
     };
     SP_REACT.useEffect(() => {
         void refrescar();
+    }, []);
+    // cada pocos segundos miramos si han conectado/desconectado mandos
+    SP_REACT.useEffect(() => {
+        const id = setInterval(() => {
+            void (async () => {
+                try {
+                    const n = await call("contar");
+                    if (n < 0)
+                        return;
+                    if (ultimoN.current >= 0 && n !== ultimoN.current) {
+                        const nuevo = await call("estado");
+                        setEst(nuevo);
+                        ultimoN.current = nuevo.mandos.length;
+                    }
+                    else {
+                        ultimoN.current = n;
+                    }
+                }
+                catch {
+                    /* silencio: es un sondeo */
+                }
+            })();
+        }, 7000);
+        return () => clearInterval(id);
     }, []);
     const conBloqueo = async (fn) => {
         if (ocupado)
@@ -915,8 +965,6 @@ function Content() {
     const maquinaNombre = nombreMaquina(est.maquina);
     const mostrarIntegrado = Boolean(integrado) || Boolean(maquinaNombre);
     const acento = C.azul;
-    // la MAC solo cuando hay mas de un mando del mismo tipo
-    const repetidos = (clase) => est.mandos.filter((x) => x.clase === clase).length > 1;
     const resumenPlanes = (() => {
         const trozos = [];
         for (const [clave, etiqueta] of [
@@ -950,7 +998,7 @@ function Content() {
                             gap: "6px",
                             width: "100%",
                         }, children: [maquinaNombre ? (SP_JSX.jsx(ChipEstado, { color: acento, icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre, size: 12 }), texto: maquinaNombre })) : null, SP_JSX.jsx(ChipEstado, { color: C.azul, icono: SP_JSX.jsx(FaGamepad, { size: 11 }), texto: `${est.mandos.length} ${est.mandos.length === 1 ? "mando" : "mandos"}` }), SP_JSX.jsx(ChipEstado, { color: C.violeta, icono: SP_JSX.jsx(FaFileAlt, { size: 11 }), texto: `v${est.version}` }), SP_JSX.jsx(ChipEstado, { color: est.hook ? C.verde : C.rojo, icono: est.hook ? SP_JSX.jsx(FaCheck, { size: 11 }) : SP_JSX.jsx(FaBan, { size: 11 }), texto: est.hook ? "hook OK" : "sin hook" })] }) }) }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonTarjeta, { onClick: cambiarJugadores, children: SP_JSX.jsxs("div", { className: "ede-tarjeta", style: {
-                                ...estiloTarjeta(false, acento),
+                                ...estiloTarjeta(acento),
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "10px",
@@ -964,7 +1012,7 @@ function Content() {
                                     }, children: [1, 2, 3, 4].map((n) => {
                                         const on = n <= Number(p.JUGADORES_MAX);
                                         return (SP_JSX.jsx("span", { className: `ede-slot ${on ? "on" : "off"}${pulsoMando === n ? " pulso" : ""}`, style: on ? { color: COLOR_JUGADOR[n - 1] } : undefined, children: SP_JSX.jsx(FaGamepad, { size: 15 }) }, n));
-                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, children: [!mostrarIntegrado && externos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                    }) })] }) }) }) }), SP_JSX.jsxs(Seccion, { titulo: "Mandos", color: acento, icono: SP_JSX.jsx(FaGamepad, { size: 13 }), abierta: true, accion: SP_JSX.jsx(BotonIcono, { titulo: "Recargar mandos", icono: SP_JSX.jsx(FaSyncAlt, { size: 12 }), onClick: () => conBloqueo(refrescar) }), children: [!mostrarIntegrado && externos.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { opacity: 0.8 }, children: "No se detecta ningun mando. Enciende el mando y pulsa Recargar." }) })) : (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                                 display: "grid",
                                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                                 gap: "6px",
@@ -972,20 +1020,18 @@ function Content() {
                             }, children: [mostrarIntegrado ? (SP_JSX.jsx("div", { className: "ede-celda", style: {
                                         minWidth: 0,
                                         maxWidth: "100%",
-                                        overflow: "hidden",
                                         borderRadius: "16px",
-                                    }, children: SP_JSX.jsx(TarjetaIntegrado, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), jugador: integrado?.jugador ?? null, modo: p.ORDEN_INTEGRADO, onClick: () => elegirIntegrado(siguienteIntegrado()) }) })) : null, externos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
+                                    }, children: SP_JSX.jsx(TarjetaIntegrado, { icono: SP_JSX.jsx(IconoMaquina, { maquina: est.maquina, nombre: integradoNombre }), jugador: integrado?.jugador ?? null, modo: p.ORDEN_INTEGRADO, detectado: Boolean(integrado), onClick: () => elegirIntegrado(siguienteIntegrado()) }) })) : null, externos.map((m) => (SP_JSX.jsx("div", { className: "ede-celda", style: {
                                         minWidth: 0,
                                         maxWidth: "100%",
-                                        overflow: "hidden",
                                         borderRadius: "16px",
-                                    }, children: SP_JSX.jsx(MandoCuadrado, { m: m, mostrarMac: repetidos(m.clase), destello: destello === m.serie, onClick: () => tocarMando(m) }) }, `${m.guid}-${m.puerto}`)))] }) })), aviso ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", onClick: limpiarAviso, children: aviso }) })) : null, est.ds_conectados > Number(p.JUGADORES_MAX) ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { fontSize: "0.68em", color: C.dorado }, children: ["Se configuran ", p.JUGADORES_MAX, " de ", est.ds_conectados, " mandos. Cambialo en Ajustes \u2192 Mandos a configurar."] }) })) : null, est.mandos.length > 1 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                    }, children: SP_JSX.jsx(MandoCuadrado, { m: m, mostrarMac: true, destello: destello === m.serie, onClick: () => tocarMando(m) }) }, `${m.guid}-${m.puerto}`)))] }) })), aviso ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(Aviso, { tono: "atencion", onClick: limpiarAviso, children: aviso }) })) : null, est.ds_conectados > Number(p.JUGADORES_MAX) ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { fontSize: "0.68em", color: C.dorado }, children: ["Se configuran ", p.JUGADORES_MAX, " de ", est.ds_conectados, " mandos. Cambialo en Ajustes \u2192 Mandos a configurar."] }) })) : null, est.mandos.length > 1 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "6px",
                                 fontSize: "0.68em",
                                 opacity: 0.6,
-                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null, SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(BotonAccion, { color: C.azul, icono: SP_JSX.jsx(FaSyncAlt, { size: 16 }), texto: "Recargar mandos", onClick: () => conBloqueo(refrescar) }) })] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
+                            }, children: [SP_JSX.jsx(GlifoA, {}), " vibrar \u00B7 dos toques seguidos = mando principal"] }) })) : null] }), SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(TarjetaFila, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), titulo: "Asignaci\u00F3n", detalle: resumenPlanes, onClick: () => abrirAsignacion(est.planes, setEst) }) }) }), SP_JSX.jsx(Seccion, { titulo: "Ajustes", color: C.violeta, icono: SP_JSX.jsx(FaSlidersH, { size: 12 }), abierta: Boolean(abiertas.ajustes), onToggle: () => toggle("ajustes"), children: SP_JSX.jsxs(Rejilla, { children: [SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.verde, icono: SP_JSX.jsx(FaCheck, { size: 17 }), anim: "pop", titulo: "Aplicar", detalle: "Ahora", onClick: aplicar }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.rojo, icono: SP_JSX.jsx(FaUndo, { size: 16 }), anim: "giro", titulo: "Restaurar", detalle: "Todo", onClick: restaurarTodo }) }), SP_JSX.jsx("div", { className: "ede-celda", children: SP_JSX.jsx(TarjetaAccion, { color: C.turquesa, icono: SP_JSX.jsx(FaFileAlt, { size: 16 }), anim: "barrido", titulo: "Ver log", detalle: "log.txt", onClick: verLog }) })] }) })] }));
 }
 var index = definePlugin(() => {
     return {

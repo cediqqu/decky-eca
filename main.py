@@ -53,6 +53,7 @@ PREF_DEF = {
     "P1_SERIE": "",
     "JUGADORES_MAX": "4",
     "ORDEN_INTEGRADO": "primero",
+    "INTEGRADO_MANUAL": "no",
     "ORDEN_DUALSENSE": "conexion",
     "RETENCION_BACKUPS": "10",
 }
@@ -186,6 +187,9 @@ def _validar(prefs):
     integ = str(prefs.get("ORDEN_INTEGRADO", "ignorar")).strip()
     out["ORDEN_INTEGRADO"] = integ if integ in INTEGRADOS else "primero"
 
+    manual = str(prefs.get("INTEGRADO_MANUAL", "no")).strip()
+    out["INTEGRADO_MANUAL"] = "si" if manual == "si" else "no"
+
     orden = str(prefs.get("ORDEN_DUALSENSE", "conexion")).strip()
     out["ORDEN_DUALSENSE"] = orden if orden in ORDENES else "conexion"
 
@@ -244,6 +248,7 @@ def _escribir_prefs(prefs):
               'P1_SERIE="%s"' % prefs["P1_SERIE"],
               "JUGADORES_MAX=%s" % prefs["JUGADORES_MAX"],
               'ORDEN_INTEGRADO="%s"' % prefs["ORDEN_INTEGRADO"],
+              'INTEGRADO_MANUAL="%s"' % prefs["INTEGRADO_MANUAL"],
               'ORDEN_DUALSENSE="%s"' % prefs["ORDEN_DUALSENSE"],
               "RETENCION_BACKUPS=%s" % prefs["RETENCION_BACKUPS"],
               END, ""]
@@ -316,6 +321,20 @@ def _quitar_bloque():
 
 
 # ------------------------------------------------------------ mdandos -------
+
+def _auto_integrado(prefs, ds_n):
+    """Sin eleccion manual: Jugador 1 sin externos, ultimo en cuanto hay uno."""
+    if prefs.get("INTEGRADO_MANUAL") == "si":
+        return prefs, ""
+    deseado = "primero" if ds_n == 0 else "ultimo"
+    nota = ""
+    if prefs["ORDEN_INTEGRADO"] != deseado:
+        prefs["ORDEN_INTEGRADO"] = deseado
+        ok, msg = _escribir_prefs(prefs)
+        if not ok:
+            nota = msg
+    return prefs, nota
+
 
 # --------------------------------------------- plan de jugadores (--who) ----
 RE_WHO = re.compile(r"Player\s+(\d+)\s*=\s*(.+?)\s*\(port\s+(\d+)\)", re.I)
@@ -800,9 +819,11 @@ class Plugin:
         ds = [m for m in mandos if m["clase"] == "DualSense"]
         ds_n = len(ds)
 
+        prefs, nota_int = _auto_integrado(prefs, ds_n)
         prefs, nota_principal = _sincronizar_principal(prefs, ds)
-        if nota_principal:
-            aviso = ((aviso + "\n") if aviso else "") + nota_principal
+        for n in (nota_int, nota_principal):
+            if n:
+                aviso = ((aviso + "\n") if aviso else "") + n
 
         # Los jugadores los decide el script (`--who`): aqui no se reimplementa.
         if ok:
@@ -869,6 +890,16 @@ class Plugin:
         }
 
     # ------------------------------------------------------------- acciones
+    async def contar(self):
+        """Numero de gamepads que ve SDL ahora mismo (sondeo ligero)."""
+        ok, _ = _instalado()
+        if not ok:
+            return 0
+        rc, salida = await _run(["bash", _script(MANDOS)], timeout=30)
+        if rc != 0:
+            return -1
+        return len(_parse_mandos(salida))
+
     async def comprobar(self):
         """Recalcula el plan de Cemu y Dolphin sin escribir nada (para el panel)."""
         ok, _ = _instalado()
@@ -900,8 +931,8 @@ class Plugin:
         else:
             prefs["P1_SERIE"] = serie
             # al elegir un mando externo como Player 1, el integrado pasa a ultimo
-            if prefs["ORDEN_INTEGRADO"] == "primero":
-                prefs["ORDEN_INTEGRADO"] = "ultimo"
+            prefs["ORDEN_INTEGRADO"] = "ultimo"
+            prefs["INTEGRADO_MANUAL"] = "no"
         ok, msg = _escribir_prefs(prefs)
         estado = await self.estado()
         if not ok:
@@ -915,6 +946,7 @@ class Plugin:
             return await self.estado()
         prefs = _leer_prefs()
         prefs["ORDEN_INTEGRADO"] = modo
+        prefs["INTEGRADO_MANUAL"] = "si"
         if modo == "primero":
             # el integrado pasa a Player 1 y los externos se corren un puesto
             prefs["P1_SERIE"] = ""
