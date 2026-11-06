@@ -797,6 +797,10 @@ class Plugin:
         ok, ruta = _instalado()
         log.info("N.E.C.A listo. HOME=%s scripts=%s",
                  _home(), "instalados" if ok else "NO instalados (%s)" % ruta)
+        viejo = os.path.join(os.path.dirname(PLUGIN_DIR), "EdenAutoconfig")
+        if os.path.isdir(viejo):
+            log.warning("hay una instalacion antigua en %s: desinstalala en Decky "
+                        "para no tener dos paneles", viejo)
         if not ok:
             log.info("Pulsa 'Instalar scripts' en el panel para instalarlos.")
             return

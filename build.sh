@@ -132,7 +132,7 @@ with zipfile.ZipFile(salida, "w", zipfile.ZIP_DEFLATED) as z:
     for f in sorted(set(ficheros)):
         # OJO: el loader hace extractall() directamente en ~/homebrew/plugins,
         # asi que todo el contenido debe ir dentro de UNA carpeta raiz.
-        z.write(os.path.join(base, f), "EdenAutoconfig/" + f)
+        z.write(os.path.join(base, f), "NecaAutoconfig/" + f)
 
 print("   %s (%d ficheros, %.1f KB)" % (
     os.path.basename(salida), len(ficheros),

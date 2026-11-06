@@ -35,9 +35,10 @@ decky-eca/                plugin (plugin.json, main.py, src/, dist/, build.sh…
   borran solos.
 - Al cargar, si los scripts instalados estan viejos o incompletos, el plugin
   ejecuta `instalar.sh` solo (no hace falta pulsar el boton).
-- El zip lleva **una carpeta raíz `EdenAutoconfig/`** (Decky extrae directamente
-  en `~/homebrew/plugins`). Se mantiene ese nombre para que la actualización
-  sustituya a la versión anterior.
+- El zip lleva **una carpeta raíz `NecaAutoconfig/`** (Decky extrae directamente
+  en `~/homebrew/plugins`). Ojo: al venir de E.C.A hay que **desinstalar el
+  plugin viejo** (`EdenAutoconfig/`) para no tener dos paneles; sus datos
+  (`~/eden-autoconfig`, backups y hook) no se tocan.
 
 ## Verificación antes de entregar
 

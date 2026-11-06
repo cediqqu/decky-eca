@@ -59,8 +59,12 @@ si necesitas fijar más de un jugador por MAC.
 
 1. Descarga **[neca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/neca-decky.zip)**.
 2. En la consola: **Decky → Developer → Install Plugin from ZIP**. Se instala en
-   `~/homebrew/plugins/EdenAutoconfig/` (la carpeta conserva ese nombre para que
-   la actualización sustituya a la versión anterior).
+   `~/homebrew/plugins/NecaAutoconfig/`.
+
+   > **¿Vienes de E.C.A?** Desinstala antes el plugin anterior (Decky → ajustes
+   > → plugins → E.C.A → desinstalar). Tus datos no se tocan: `~/eden-autoconfig`,
+   > las plantillas, los backups y el hook se quedan como están. Si instalas sin
+   > desinstalar, verás dos paneles.
 3. Abre el panel en el menú rápido y pulsa **Instalar scripts** (solo la primera
    vez). Copia los scripts a `~/eden-autoconfig`, deja el hook en
    `~/ES-DE/scripts/game-start/` si existe esa carpeta y comprueba que SDL
@@ -208,7 +212,7 @@ bash build.sh             # sincroniza scripts/ + compila + genera el zip
 ```
 
 `build.sh` necesita Node 20+ y Python 3. El zip lleva una carpeta raíz
-`EdenAutoconfig/`.
+`NecaAutoconfig/`.
 
 - `scripts/` es una **copia generada** desde `eden_controller/` (la fuente de
   verdad). No se edita ahí; los cambios van a `eden_controller/` y se copian con

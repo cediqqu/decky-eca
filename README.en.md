@@ -62,7 +62,12 @@ appear, with the English meaning in parentheses.
 
 1. Download **[neca-decky.zip](https://github.com/CeDiqqu/decky-eca/releases/latest/download/neca-decky.zip)**.
 2. On the handheld: **Decky → Developer → Install Plugin from ZIP**. It installs
-   to `~/homebrew/plugins/EdenAutoconfig/` (the folder keeps that name so an
+   to `~/homebrew/plugins/NecaAutoconfig/`.
+
+   > **Coming from E.C.A?** Uninstall the previous plugin first (Decky →
+   > settings → plugins → E.C.A → uninstall). Your data is untouched:
+   > `~/eden-autoconfig`, templates, backups and the hook stay as they are.
+   > Installing without uninstalling leaves two panels.
    update replaces the previous version).
 3. Open the panel in the Quick Access Menu and press **Instalar scripts**
    (Install scripts) the first time. It copies the scripts to
@@ -217,7 +222,7 @@ bash build.sh             # sync scripts/ + build + package the zip
 ```
 
 `build.sh` requires Node 20+ and Python 3. The zip contains a single root
-folder, `EdenAutoconfig/`.
+folder, `NecaAutoconfig/`.
 
 - `scripts/` is a **generated copy** of `eden_controller/` (the source of truth).
   Do not edit it there; change `eden_controller/` and copy with `build.sh`.
